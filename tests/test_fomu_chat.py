@@ -90,7 +90,7 @@ def test_mwandishi_hubadilisha_modeli_ikiwa_haipo(monkeypatch):
 
     m = Mwandishi.__new__(Mwandishi)
     m.client = types.SimpleNamespace(models=Models())
-    m.modeli = "gemini-2.5-flash"
+    m.modeli, m._akiba = "gemini-2.5-flash", None
     jibu = m.jibu([{"role": "assistant", "content": "Karibu"}], "habari", "kichwa: A")
     assert jibu == "Sawa!" and simu == ["gemini-2.5-flash", "gemini-3.0-flash"]
 
@@ -101,3 +101,41 @@ def test_kosa_la_hadithi_linaeleweka():
     d["matukio"][0]["mazungumzo"] = [{"mgeni": "habari"}]
     with pytest.raises(KosaLaHadithi, match="mgeni"):
         kutoka_data(d)
+
+
+def test_mwandishi_huruka_modeli_zisizo_na_mgao_wa_bure():
+    from google.genai import errors
+
+    from hadithi.chat import KosaLaAI
+
+    simu = []
+
+    def kosa(code, msg):
+        return errors.ClientError(code, {"error": {"code": code, "message": msg, "status": "X"}})
+
+    class Models:
+        def __init__(self, zote_zimeisha=False):
+            self.zote = zote_zimeisha
+
+        def generate_content(self, model, contents, config):
+            simu.append(model)
+            if self.zote or model in ("gemini-2.5-flash", "gemini-3.0-flash"):
+                raise kosa(429, "Quota exceeded ... limit: 0")
+            return types.SimpleNamespace(text="Habari!")
+
+        def list(self):
+            return [types.SimpleNamespace(name=f"models/{n}", supported_actions=["generateContent"])
+                    for n in ["gemini-omni-flash", "gemini-3.0-flash", "gemini-2.0-flash-lite",
+                              "gemini-flash-latest", "gemini-3.0-pro", "gemini-2.5-flash-image"]]
+
+    m = Mwandishi.__new__(Mwandishi)
+    m.client = types.SimpleNamespace(models=Models())
+    m.modeli, m._akiba = "gemini-2.5-flash", None
+    assert m.jibu([], "habari") == "Habari!"
+    assert simu == ["gemini-2.5-flash", "gemini-3.0-flash", "gemini-flash-latest"]
+    assert m.modeli == "gemini-flash-latest"
+
+    m.client = types.SimpleNamespace(models=Models(zote_zimeisha=True))
+    m.modeli, m._akiba = "gemini-2.5-flash", None
+    with pytest.raises(KosaLaAI, match="Mgao wa bure"):
+        m.jibu([], "habari")

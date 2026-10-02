@@ -13,7 +13,7 @@ from pathlib import Path
 import gradio as gr
 
 from . import fomu
-from .chat import Mwandishi, ondoa_yaml, toa_yaml
+from .chat import KosaLaAI, Mwandishi, ondoa_yaml, toa_yaml
 from .pipeline import Studio
 from .story import MSIMULIZI, KosaLaHadithi, kutoka_data
 from .voices import jaribu_sauti
@@ -151,6 +151,8 @@ class Programu:
                     jibu += f"\n\n⚠️ Hadithi hii ina kosa ({kosa}), hivyo sijaiweka kwenye fomu. Niambie nijaribu tena."
         except gr.Error:
             raise
+        except KosaLaAI as e:
+            jibu = f"⚠️ {e}"
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             jibu = f"⚠️ Samahani, imeshindikana kuwasiliana na AI: {e}"

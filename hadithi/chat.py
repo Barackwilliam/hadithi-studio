@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 
-MODELI_MSINGI = "gemini-2.5-flash"
+MODELI_MSINGI = "gemini-flash-latest"
 
 MAELEKEZO = """Wewe ni mwandishi hodari wa hadithi za Kiswahili kwa ajili ya video za katuni na tamthiliya.
 Unamsaidia mtumiaji (ambaye si mtaalamu wa kompyuta) kubuni na kuboresha hadithi kwa mazungumzo.
@@ -63,6 +63,26 @@ def ondoa_yaml(jibu: str) -> str:
     return safi.strip()
 
 
+def _daraja_la_modeli(jina: str) -> tuple:
+    """Panga modeli: 'flash' imara mpya kwanza, kisha 'flash-latest', kisha 'flash-lite', kisha nyingine."""
+    toleo = re.match(r"^gemini-(\d+(?:\.\d+)*)-flash(-lite)?$", jina)
+    if toleo:
+        namba = tuple(-int(x) for x in toleo.group(1).split("."))
+        return (2 if toleo.group(2) else 0, namba, jina)
+    if jina == "gemini-flash-latest":
+        return (1, (), jina)
+    if jina == "gemini-flash-lite-latest":
+        return (3, (), jina)
+    return (4 if "flash" in jina else 5, (), jina)
+
+
+VIZUIZI = ("image", "tts", "audio", "live", "embed", "vision", "robotics", "computer-use", "omni")
+
+
+class KosaLaAI(RuntimeError):
+    """Kosa linaloeleweka kwa mtumiaji."""
+
+
 class Mwandishi:
     def __init__(self, api_key: str, modeli: str | None = None):
         from google import genai
@@ -71,17 +91,20 @@ class Mwandishi:
             raise ValueError("Weka API key ya Gemini (bure: https://aistudio.google.com/apikey).")
         self.client = genai.Client(api_key=api_key.strip())
         self.modeli = modeli or MODELI_MSINGI
+        self._akiba: list[str] | None = None
 
-    def _chagua_modeli_nyingine(self) -> str | None:
-        """Ikiwa modeli ya msingi haipo tena, tafuta modeli ya 'flash' inayopatikana."""
-        try:
-            majina = [m.name.split("/")[-1] for m in self.client.models.list()
-                      if "generateContent" in (m.supported_actions or [])]
-        except Exception:  # noqa: BLE001
-            return None
-        flash = sorted((n for n in majina if "flash" in n and "lite" not in n and "image" not in n
-                        and "tts" not in n and "audio" not in n), reverse=True)
-        return flash[0] if flash else (majina[0] if majina else None)
+    def _modeli_za_akiba(self) -> list[str]:
+        """Modeli za maandishi zinazopatikana kwa key hii, zikiwa zimepangwa kwa ubora wa mgao wa bure."""
+        if self._akiba is None:
+            try:
+                majina = [m.name.split("/")[-1] for m in self.client.models.list()
+                          if "generateContent" in (m.supported_actions or [])]
+            except Exception:  # noqa: BLE001
+                majina = []
+            majina = [n for n in majina if n.startswith("gemini") and "pro" not in n
+                      and not any(v in n for v in VIZUIZI)]
+            self._akiba = sorted(set(majina), key=_daraja_la_modeli)
+        return self._akiba
 
     def jibu(self, historia: list[dict], ujumbe: str, hadithi_ya_sasa: str | None = None) -> str:
         """historia: [{"role": "user"/"assistant", "content": "..."}]"""
@@ -97,14 +120,29 @@ class Mwandishi:
         ]
         maudhui.append(types.Content(role="user", parts=[types.Part.from_text(text=ujumbe)]))
         config = types.GenerateContentConfig(system_instruction=maelekezo, temperature=0.9)
-        try:
-            r = self.client.models.generate_content(model=self.modeli, contents=maudhui, config=config)
-        except errors.ClientError as e:
-            if getattr(e, "code", None) != 404:
-                raise
-            mpya = self._chagua_modeli_nyingine()
-            if not mpya:
-                raise
-            self.modeli = mpya
-            r = self.client.models.generate_content(model=self.modeli, contents=maudhui, config=config)
-        return r.text or ""
+
+        kosa_la_mwisho: Exception | None = None
+        jaribu = [self.modeli]
+        i = 0
+        while i < len(jaribu) and i < 6:
+            modeli = jaribu[i]
+            i += 1
+            try:
+                r = self.client.models.generate_content(model=modeli, contents=maudhui, config=config)
+                self.modeli = modeli  # tumia hii hii wakati ujao
+                return r.text or ""
+            except errors.ClientError as e:
+                kosa_la_mwisho = e
+                code = getattr(e, "code", None)
+                if code in (401, 403) or (code == 400 and "api key" in str(e).lower()):
+                    raise KosaLaAI("API key ya Gemini haikubaliki. Tengeneza mpya kwenye "
+                                   "https://aistudio.google.com/apikey na uibandike tena.") from e
+                if code not in (400, 404, 429):
+                    raise
+                # modeli hii haipo / haina mgao wa bure / mgao umeisha: jaribu nyingine
+                if len(jaribu) == i:
+                    jaribu += [m for m in self._modeli_za_akiba() if m not in jaribu]
+        if getattr(kosa_la_mwisho, "code", None) == 429:
+            raise KosaLaAI("Mgao wa bure wa Gemini umeisha kwa sasa. Subiri dakika chache (au kesho), kisha jaribu "
+                           "tena. Wakati huo unaweza kuandika au kurekebisha hadithi kwenye tabo ya 📝 Hadithi.")
+        raise kosa_la_mwisho or KosaLaAI("Hakuna modeli ya Gemini inayopatikana kwa key hii.")
