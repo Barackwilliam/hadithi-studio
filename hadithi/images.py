@@ -146,8 +146,10 @@ class MchorajiWaMtandao:
 
 
 def _maelezo_ya_tukio(h: Hadithi, t: Tukio) -> str:
+    """CLIP husoma maneno ~77 tu ya mwanzo, hivyo muhimu zaidi hukaa mbele:
+    tukio lenyewe, kisha mtindo, kisha sura za wahusika (IP-Adapter pia husaidia sura)."""
     wahusika = [h.wahusika[w].maelezo for w in t.wahusika if h.wahusika[w].maelezo]
-    return ", ".join([h.mtindo, t.picha, *wahusika, UBORA])
+    return ", ".join([t.picha, h.mtindo, *wahusika, "high quality"])
 
 
 def _maelezo_ya_mhusika(h: Hadithi, maelezo: str) -> str:
