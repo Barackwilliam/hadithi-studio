@@ -96,10 +96,20 @@ def _sauti(jina: str | None, chaguo_msingi: str) -> str:
 
 def soma(njia: str | Path) -> Hadithi:
     njia = Path(njia)
+    return soma_maandishi(njia.read_text(encoding="utf-8"), njia.parent)
+
+
+def soma_maandishi(maandishi: str, folda: str | Path = ".") -> Hadithi:
     try:
-        data = yaml.safe_load(njia.read_text(encoding="utf-8")) or {}
+        data = yaml.safe_load(maandishi) or {}
     except yaml.YAMLError as e:
-        raise KosaLaHadithi(f"Faili la hadithi lina kosa la muundo (YAML): {e}") from e
+        raise KosaLaHadithi(f"Hadithi ina kosa la muundo (YAML): {e}") from e
+    if not isinstance(data, dict):
+        raise KosaLaHadithi("Hadithi haina muundo sahihi (inatakiwa kuanza na 'kichwa:', 'wahusika:', 'matukio:').")
+    return kutoka_data(data, folda)
+
+
+def kutoka_data(data: dict, folda: str | Path = ".") -> Hadithi:
 
     ukubwa = str(data.get("ukubwa", "16:9"))
     if ukubwa not in UKUBWA:
@@ -168,5 +178,5 @@ def soma(njia: str | Path) -> Hadithi:
         wahusika=wahusika,
         matukio=matukio,
         mipangilio=mipangilio,
-        folda=njia.parent,
+        folda=Path(folda),
     )

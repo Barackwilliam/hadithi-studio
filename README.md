@@ -17,13 +17,25 @@ Yote hufanyika kwenye **Google Colab** (GPU ya bure ya Google). Haihitaji kompyu
 
 ---
 
-## 🚀 Jinsi ya kutumia (hatua 3)
+## 🚀 Jinsi ya kutumia
 
 1. Bonyeza kitufe cha **Open in Colab** hapo juu.
 2. Washa GPU: **Runtime → Change runtime type → T4 GPU → Save**
-3. Bonyeza ▶️ kwenye kila sehemu kwa mpangilio. Andika hadithi yako kwenye **Hatua ya 3**.
+3. Bonyeza ▶️ kwenye **Hatua ya 1, 2 na 3**.
+4. Hatua ya 3 itakupa **link** inayoishia `.gradio.live`. Ifungue, hata kwenye simu, na utapata ukurasa wenye sehemu tatu:
 
-Ukichagua kuhifadhi kwenye Google Drive, kazi yako itakaa salama kwenye folda `HadithiStudio`, na unaweza kuendelea siku nyingine.
+| Tabo | Kazi yake |
+|---|---|
+| 💬 **Chat** | Iambie AI wazo lako, kwa mfano *"Niandikie hadithi ya sungura mjanja kwa TikTok"*. Itaandika hadithi nzima. Kisha unaweza kuiomba ibadilishe chochote, kwa mfano *"ongeza tukio la mvua"*. |
+| 📝 **Hadithi** | Fomu ya kurekebisha kichwa, mtindo wa picha, wahusika (sura, sauti, kina, kasi; 🔊 sikiliza sauti) na kila tukio (picha, wanaoonekana, mwendo wa kamera, mazungumzo). |
+| 🎬 **Video** | Chora wahusika, kisha matukio. Chora upya usiyoyapenda. Mwisho bonyeza **Tengeneza video** na uipakue. |
+
+### 🔑 API key ya Gemini (bure, kwa Chat tu)
+1. Fungua [aistudio.google.com/apikey](https://aistudio.google.com/apikey) na uingie kwa akaunti ya Google.
+2. Bonyeza **Create API key**, kisha nakili key.
+3. Ibandike kwenye Hatua ya 3 ya notebook, au kwenye sehemu ya 🔑 ndani ya ukurasa.
+
+Fomu na video zinafanya kazi hata bila key. Ukichagua kuhifadhi kwenye Google Drive, kazi yako itakaa salama kwenye folda `HadithiStudio`, na unaweza kuendelea siku nyingine.
 
 ---
 
@@ -109,6 +121,13 @@ python -m hadithi mifano/siri_ya_kisima.yaml --nje matokeo
 # majaribio bila GPU (picha za mfano):
 pip install -r requirements.txt
 python -m hadithi mifano/siri_ya_kisima.yaml --picha mfano
+
+# ukurasa wa wavuti (http://localhost:7860)
+python -m hadithi.app --folda matokeo            # --share kwa link ya umma
+python -m hadithi.app --picha mfano --sauti kimya # majaribio bila GPU wala mtandao
+
+# majaribio ya code
+pip install pytest && python -m pytest tests
 ```
 
 | Chaguo | Maana |
@@ -118,4 +137,4 @@ python -m hadithi mifano/siri_ya_kisima.yaml --picha mfano
 | `--sauti edge` | Sauti 4 za Kiswahili (Microsoft Edge TTS). Hii ndiyo chaguo-msingi |
 | `--sauti mms` | Sauti ya Meta MMS ya Kiswahili, inayotumika ikiwa Edge haipatikani |
 
-**Teknolojia zinazotumika (zote ni za bure):** Stable Diffusion XL, SDXL-Lightning (ByteDance), IP-Adapter, Edge TTS, Meta MMS-TTS, FFmpeg.
+**Teknolojia zinazotumika (zote ni za bure):** Gradio, Google Gemini (chat), Stable Diffusion XL, SDXL-Lightning (ByteDance), IP-Adapter, Edge TTS, Meta MMS-TTS, FFmpeg.

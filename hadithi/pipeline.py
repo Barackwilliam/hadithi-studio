@@ -1,6 +1,7 @@
 """Hatua zote kwa mpangilio: wahusika → matukio → sauti → video."""
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 from .images import Mchoraji, tengeneza_matukio, tengeneza_wahusika
@@ -43,20 +44,23 @@ class Studio:
         self._mchoraji.hadithi = self.hadithi
         return self._mchoraji
 
-    def wahusika(self) -> dict[str, Path]:
+    def wahusika(self, chora_upya: tuple[str, ...] = ()) -> dict[str, Path]:
+        """Picha za wahusika. `chora_upya`: majina (id) ya wahusika wa kuchorwa upya kwa mbegu mpya."""
         print("👥 Picha za wahusika...")
-        return tengeneza_wahusika(self.hadithi, self.folda / "wahusika", self.injini_ya_picha, self.mchoraji)
+        mpya = {w: random.randint(1, 10**6) for w in chora_upya}
+        return tengeneza_wahusika(self.hadithi, self.folda / "wahusika", self.injini_ya_picha, self.mchoraji, mpya)
 
-    def matukio(self) -> dict[int, Path]:
+    def matukio(self, chora_upya: tuple[int, ...] = ()) -> dict[int, Path]:
+        """Picha za matukio. `chora_upya`: namba za matukio ya kuchorwa upya kwa mbegu mpya."""
         wahusika = self.wahusika()
         print("🖼️  Picha za matukio...")
+        mpya = {n: random.randint(1, 10**6) for n in chora_upya}
         return tengeneza_matukio(self.hadithi, self.folda / "matukio", wahusika, self.injini_ya_picha,
-                                 self.mchoraji)
+                                 self.mchoraji, mpya)
 
-    def chora_upya(self, *namba: int) -> None:
-        """Futa picha za matukio haya ili zichorwe upya (badilisha 'mbegu' au maelezo kwanza)."""
-        for n in namba:
-            (self.folda / "matukio" / f"tukio{n:03d}.png").unlink(missing_ok=True)
+    def chora_upya(self, *namba: int) -> dict[int, Path]:
+        """Chora upya matukio haya kwa mbegu mpya (picha tofauti)."""
+        return self.matukio(chora_upya=namba)
 
     def video(self, kadi_ya_kichwa: bool = True) -> Path:
         picha = self.matukio()

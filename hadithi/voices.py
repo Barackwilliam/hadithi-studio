@@ -79,6 +79,28 @@ def _kimya(maneno: str, faili: Path) -> None:
     )
 
 
+def sauti_moja(maneno: str, m: Mhusika, faili: Path, injini: str = "edge") -> str:
+    """Tengeneza sauti ya mstari mmoja. Hurudisha injini iliyotumika (edge ikishindwa, mms hutumika)."""
+    muda = faili.with_suffix(".tmp.mp3")
+    if injini == "kimya":
+        _kimya(maneno, muda)
+    elif injini == "mms":
+        _mms(maneno, m, muda)
+    else:
+        try:
+            _edge(maneno, m, muda)
+        except Exception as e:  # noqa: BLE001
+            print(f"  ⚠️  Sauti za Edge hazipatikani ({type(e).__name__}); natumia sauti ya MMS badala yake.")
+            injini = "mms"
+            _mms(maneno, m, muda)
+    if not muda.exists() or muda.stat().st_size == 0:
+        muda.unlink(missing_ok=True)
+        raise RuntimeError(f"Sauti haikupatikana kwa '{maneno[:40]}'. Hakikisha kuna mtandao "
+                           f"na sauti '{m.sauti}' ni sahihi.")
+    muda.replace(faili)
+    return injini
+
+
 def tengeneza_sauti(hadithi: Hadithi, folda: Path, injini: str = "edge") -> dict[tuple[int, int], tuple[Path, float]]:
     """Tengeneza faili la sauti kwa kila mstari. Hurudisha {(tukio, mstari): (faili, sekunde)}.
 
@@ -89,36 +111,20 @@ def tengeneza_sauti(hadithi: Hadithi, folda: Path, injini: str = "edge") -> dict
     for t in hadithi.matukio:
         for j, mstari in enumerate(t.mazungumzo):
             m = hadithi.wahusika[mstari.msemaji]
-            alama = hashlib.md5(f"{m.sauti}|{m.sauti}|{m.kasi}|{m.kina}|{mstari.maneno}".encode()).hexdigest()[:8]
+            alama = hashlib.md5(f"{m.sauti}|{m.kasi}|{m.kina}|{mstari.maneno}".encode()).hexdigest()[:8]
             faili = folda / f"tukio{t.namba:03d}_{j:02d}_{alama}.mp3"
             if not faili.exists():
                 print(f"  🎙️  Tukio {t.namba}, {m.jina}: {mstari.maneno[:50]}")
-                muda = faili.with_suffix(".tmp.mp3")
-                if injini == "kimya":
-                    _kimya(mstari.maneno, muda)
-                elif injini == "mms":
-                    _mms(mstari.maneno, m, muda)
-                else:
-                    try:
-                        _edge(mstari.maneno, m, muda)
-                    except Exception as e:  # noqa: BLE001
-                        print(f"  ⚠️  Sauti za Edge hazipatikani ({type(e).__name__}); natumia sauti ya MMS badala yake.")
-                        injini = "mms"
-                        _mms(mstari.maneno, m, muda)
-                if not muda.exists() or muda.stat().st_size == 0:
-                    muda.unlink(missing_ok=True)
-                    raise RuntimeError(f"Sauti haikupatikana kwa '{mstari.maneno[:40]}'. Hakikisha kuna mtandao "
-                                       f"na sauti '{m.sauti}' ni sahihi.")
-                muda.replace(faili)
+                injini = sauti_moja(mstari.maneno, m, faili, injini)
             matokeo[(t.namba, j)] = (faili, muda_wa_sauti(faili))
     return matokeo
 
 
 def jaribu_sauti(maneno: str = "Habari! Karibu kwenye Hadithi Studio.", sauti: str = "rehema",
-                 kasi: str = "+0%", kina: str = "+0Hz", faili: str = "jaribio.mp3") -> str:
+                 kasi: str = "+0%", kina: str = "+0Hz", faili: str = "jaribio.mp3", injini: str = "edge") -> str:
     """Sikiliza sauti moja kabla ya kuitumia kwenye hadithi."""
     from .story import SAUTI
 
     m = Mhusika(id="jaribio", jina="jaribio", sauti=SAUTI.get(sauti, sauti), kasi=kasi, kina=kina)
-    _edge(maneno, m, Path(faili))
+    sauti_moja(maneno, m, Path(faili), injini)
     return faili

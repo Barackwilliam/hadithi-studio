@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import shutil
 import textwrap
 from pathlib import Path
@@ -91,46 +93,84 @@ def _picha_ya_mfano(maandishi: str, upana: int, urefu: int, namba: int) -> Image
     return img
 
 
-def tengeneza_wahusika(h: Hadithi, folda: Path, injini: str = "sdxl", mchoraji: Mchoraji | None = None) -> dict[str, Path]:
+def _alama(*vipande) -> str:
+    return hashlib.md5("|".join(map(str, vipande)).encode()).hexdigest()[:12]
+
+
+def _inahitaji_kuchorwa(faili: Path, alama: str) -> bool:
+    """Chora ikiwa picha haipo, au maelezo yake yamebadilika tangu ilipochorwa.
+    Picha uliyoiweka mwenyewe (bila faili la .json) haiguswi."""
+    if not faili.exists():
+        return True
+    meta = faili.with_suffix(".json")
+    if not meta.exists():
+        return False
+    try:
+        return json.loads(meta.read_text()).get("alama") != alama
+    except (OSError, ValueError):
+        return True
+
+
+def _hifadhi(img: Image.Image, faili: Path, alama: str, mbegu: int) -> None:
+    img.save(faili)
+    faili.with_suffix(".json").write_text(json.dumps({"alama": alama, "mbegu": mbegu}))
+
+
+def tengeneza_wahusika(h: Hadithi, folda: Path, injini: str = "sdxl", mchoraji: Mchoraji | None = None,
+                       mbegu_maalum: dict[str, int] | None = None) -> dict[str, Path]:
     """Chora picha ya kumbukumbu ya kila mhusika (au tumia picha uliyoweka)."""
+    mbegu_maalum = mbegu_maalum or {}
     folda.mkdir(parents=True, exist_ok=True)
     matokeo = {}
     kwa_kuchora = [m for m in h.wahusika.values() if m.maelezo or m.picha]
     for i, m in enumerate(kwa_kuchora):
         faili = folda / f"{m.id}.png"
-        if m.picha and not faili.exists():
-            shutil.copy(h.folda / m.picha, faili)
-        if not faili.exists():
+        if m.picha:
+            if not faili.exists():
+                shutil.copy(h.folda / m.picha, faili)
+            matokeo[m.id] = faili
+            continue
+        maelezo = _maelezo_ya_mhusika(h, m.maelezo)
+        alama = _alama(maelezo, injini, h.mipangilio.modeli)
+        if m.id in mbegu_maalum or _inahitaji_kuchorwa(faili, alama):
+            mbegu = mbegu_maalum.get(m.id, h.mipangilio.mbegu + 1000 + i)
             print(f"  🎨 Mhusika: {m.jina}")
             if injini == "mfano":
-                img = _picha_ya_mfano(f"{m.jina}: {m.maelezo}", 832, 1216, i)
+                img = _picha_ya_mfano(f"{m.jina} ({mbegu}): {m.maelezo}", 832, 1216, mbegu)
             else:
-                img = mchoraji.chora(_maelezo_ya_mhusika(h, m.maelezo), 832, 1216, h.mipangilio.mbegu + 1000 + i)
-            img.save(faili)
+                img = mchoraji.chora(maelezo, 832, 1216, mbegu)
+            _hifadhi(img, faili, alama, mbegu)
         matokeo[m.id] = faili
     return matokeo
 
 
 def tengeneza_matukio(h: Hadithi, folda: Path, picha_za_wahusika: dict[str, Path], injini: str = "sdxl",
-                      mchoraji: Mchoraji | None = None) -> dict[int, Path]:
-    """Chora picha ya kila tukio. Picha iliyopo haichorwi tena: ifute ili ichorwe upya."""
+                      mchoraji: Mchoraji | None = None, mbegu_maalum: dict[int, int] | None = None) -> dict[int, Path]:
+    """Chora picha ya kila tukio. Picha huchorwa upya tu maelezo yake yakibadilika,
+    au tukio likiwa kwenye `mbegu_maalum` (chora upya kwa mbegu mpya)."""
+    mbegu_maalum = mbegu_maalum or {}
     folda.mkdir(parents=True, exist_ok=True)
     upana, urefu = h.picha_size
     matokeo = {}
     for t in h.matukio:
         faili = folda / f"tukio{t.namba:03d}.png"
-        if t.picha_faili and not faili.exists():
+        if t.picha_faili:
             Image.open(h.folda / t.picha_faili).convert("RGB").save(faili)
-        if not faili.exists():
+            faili.with_suffix(".json").unlink(missing_ok=True)
+            matokeo[t.namba] = faili
+            continue
+        maelezo = _maelezo_ya_tukio(h, t)
+        kumbukumbu_za = [w for w in t.wahusika if w in picha_za_wahusika]
+        alama = _alama(maelezo, upana, urefu, injini, h.mipangilio.modeli, h.mipangilio.nguvu_ya_mhusika,
+                       *(f"{w}:{picha_za_wahusika[w].stat().st_mtime_ns}" for w in kumbukumbu_za))
+        if t.namba in mbegu_maalum or _inahitaji_kuchorwa(faili, alama):
+            mbegu = mbegu_maalum.get(t.namba, h.mipangilio.mbegu + t.namba)
             print(f"  🎨 Tukio {t.namba}: {t.picha[:60]}")
-            maelezo = _maelezo_ya_tukio(h, t)
             if injini == "mfano":
-                img = _picha_ya_mfano(f"Tukio {t.namba}: {t.picha}", upana, urefu, t.namba)
+                img = _picha_ya_mfano(f"Tukio {t.namba} ({mbegu}): {t.picha}", upana, urefu, mbegu)
             else:
-                kumbukumbu = [Image.open(picha_za_wahusika[w]).convert("RGB")
-                              for w in t.wahusika if w in picha_za_wahusika]
-                img = mchoraji.chora(maelezo, upana, urefu, h.mipangilio.mbegu + t.namba,
-                                     kumbukumbu, h.mipangilio.nguvu_ya_mhusika)
-            img.save(faili)
+                kumbukumbu = [Image.open(picha_za_wahusika[w]).convert("RGB") for w in kumbukumbu_za]
+                img = mchoraji.chora(maelezo, upana, urefu, mbegu, kumbukumbu, h.mipangilio.nguvu_ya_mhusika)
+            _hifadhi(img, faili, alama, mbegu)
         matokeo[t.namba] = faili
     return matokeo
