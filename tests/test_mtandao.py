@@ -39,3 +39,21 @@ def test_mchoraji_wa_mtandao(monkeypatch):
     assert njia == "/prompt/a girl, yellow dress / village"
     assert q["seed"] == ["7"] and q["model"] == ["flux"] and auth == "Bearer siri"
     assert len(MAOMBI) == 2
+
+
+def test_torchao_ya_zamani_inaondolewa(monkeypatch):
+    import importlib.metadata
+    import subprocess
+    import sys
+
+    from hadithi.images import _ondoa_torchao_ya_zamani
+
+    amri = []
+    monkeypatch.setattr(subprocess, "run", lambda a, **k: amri.append(a))
+    monkeypatch.delitem(sys.modules, "torchao", raising=False)
+    for toleo, inaondolewa in (("0.10.0", True), ("0.16.1", False)):
+        amri.clear()
+        monkeypatch.setattr(importlib.metadata, "version", lambda n, t=toleo: t)
+        _ondoa_torchao_ya_zamani()
+        assert bool(amri) == inaondolewa
+    assert amri == [] or "uninstall" in amri[0]

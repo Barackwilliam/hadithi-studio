@@ -27,10 +27,34 @@ from .util import fonti
 UBORA = "high quality, detailed, consistent character design, cinematic lighting"
 
 
+def _ondoa_torchao_ya_zamani() -> None:
+    """Colab ina torchao ya zamani (mf. 0.10); peft mpya hukataa kupakia LoRA ikiiona.
+    Hatuitumii, hivyo tunaiondoa kabla ya kupakia modeli."""
+    import importlib
+    import importlib.metadata
+    import subprocess
+    import sys
+
+    try:
+        toleo = importlib.metadata.version("torchao")
+    except importlib.metadata.PackageNotFoundError:
+        return
+    try:
+        kuu, ndogo = (int(x) for x in toleo.split(".")[:2])
+    except ValueError:
+        return
+    if (kuu, ndogo) >= (0, 16) or "torchao" in sys.modules:
+        return
+    print(f"🔧 Inaondoa torchao {toleo} (haiendani na peft)...")
+    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "-q", "torchao"], check=False)
+    importlib.invalidate_caches()
+
+
 class Mchoraji:
     """Hupakia modeli mara moja tu, kisha huchora picha nyingi."""
 
     def __init__(self, hadithi: Hadithi):
+        _ondoa_torchao_ya_zamani()
         import torch
         from diffusers import AutoencoderKL, EulerDiscreteScheduler, StableDiffusionXLPipeline
         from huggingface_hub import hf_hub_download

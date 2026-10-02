@@ -6,7 +6,9 @@ Kwenye terminal: python -m hadithi.app --folda matokeo --picha mfano --sauti kim
 from __future__ import annotations
 
 import argparse
+import functools
 import os
+import threading
 import traceback
 from pathlib import Path
 
@@ -51,6 +53,7 @@ class Programu:
         self.injini_ya_picha = picha
         self.injini_ya_sauti = sauti
         self._studio: Studio | None = None
+        self._kufuli = threading.Lock()  # kazi moja nzito (GPU) kwa wakati mmoja
         self._mwandishi: Mwandishi | None = None
 
     # ---------- hifadhi ----------
@@ -416,29 +419,48 @@ def jenga(prog: Programu) -> gr.Blocks:
         pakia_hadithi.upload(pakia_hadithi_fn, [data, pakia_hadithi, chagua_mhusika, chagua_tukio], [data, *FOMU])
 
         # --- picha na video ---
+        def kazi_nzito(fn):
+            """Kazi za picha/video: moja kwa wakati, na kosa lionekane kwa lugha rahisi."""
+            @functools.wraps(fn)
+            def ndani(*a):
+                with prog._kufuli:
+                    try:
+                        return fn(*a)
+                    except gr.Error:
+                        raise
+                    except Exception as e:  # noqa: BLE001
+                        traceback.print_exc()
+                        raise gr.Error(f"Imeshindikana: {type(e).__name__}: {str(e)[:300]}") from e
+            return ndani
+
+        nzito = {"concurrency_id": "kazi_nzito", "concurrency_limit": 1}
+
+        @kazi_nzito
         def chora_w_fn(d, upya=None):
             s = prog.studio(d)
             p = s.wahusika(chora_upya=(upya,) if upya else ())
             return prog.galeria_ya_wahusika(d, p), chaguo_za_upya_w(d)
 
-        chora_w.click(chora_w_fn, data, [gal_w, upya_w])
+        chora_w.click(chora_w_fn, data, [gal_w, upya_w], **nzito)
         chora_upya_w.click(lambda d, u: chora_w_fn(d, u) if u else (gr.update(), gr.update()),
-                           [data, upya_w], [gal_w, upya_w])
+                           [data, upya_w], [gal_w, upya_w], **nzito)
 
+        @kazi_nzito
         def chora_m_fn(d, namba=""):
             s = prog.studio(d)
             p = s.matukio(chora_upya=_namba(namba))
             return prog.galeria_ya_wahusika(d, s.wahusika()), prog.galeria_ya_matukio(d, p)
 
-        chora_m.click(chora_m_fn, data, [gal_w, gal_m])
-        chora_upya_m.click(chora_m_fn, [data, upya_m], [gal_w, gal_m])
+        chora_m.click(chora_m_fn, data, [gal_w, gal_m], **nzito)
+        chora_upya_m.click(chora_m_fn, [data, upya_m], [gal_w, gal_m], **nzito)
 
+        @kazi_nzito
         def tengeneza_fn(d, k):
             s = prog.studio(d)
             v = s.video(kadi_ya_kichwa=k)
             return (str(v), str(v), prog.galeria_ya_matukio(d, s.matukio()))
 
-        tengeneza.click(tengeneza_fn, [data, kadi], [video, pakua, gal_m])
+        tengeneza.click(tengeneza_fn, [data, kadi], [video, pakua, gal_m], **nzito)
 
         app.load(lambda d: (*prog.sehemu_za_fomu(d), chaguo_za_upya_w(d)), data, [*FOMU, upya_w])
     return app
