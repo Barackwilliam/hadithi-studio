@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+matokeo/
+*.mp4
+*.tmp.mp3
+.ipynb_checkpoints/

@@ -1,0 +1,7 @@
+-r requirements.txt
+# Sehemu ya picha za AI (inahitaji GPU, mfano Colab T4)
+diffusers>=0.30
+transformers>=4.40
+accelerate>=0.30
+peft>=0.11
+huggingface_hub>=0.23

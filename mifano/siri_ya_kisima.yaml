@@ -1,0 +1,91 @@
+# ============================================================
+#  HADITHI YA MFANO — nakili faili hili na ubadilishe upendavyo
+# ============================================================
+
+kichwa: "Siri ya Kisima cha Kijiji"
+
+# Mtindo wa picha zote (Kiingereza hufanya kazi vizuri zaidi). Mifano:
+#   "colorful 2D cartoon, children's storybook illustration"
+#   "3D animated movie style, pixar-like, soft lighting"
+#   "anime style, studio ghibli inspired, warm colors"
+mtindo: "colorful 2D cartoon illustration, African village setting, warm sunset colors, storybook style"
+
+# 16:9 = YouTube | 9:16 = TikTok/Reels/Shorts | 1:1 = Instagram
+ukubwa: "16:9"
+
+# ---------- WAHUSIKA ----------
+# sauti: rehema (mwanamke TZ), daudi (mwanamume TZ), zuri (mwanamke KE), rafiki (mwanamume KE)
+# kina: "+25Hz" = sauti nyembamba (mtoto), "-15Hz" = sauti nzito (mzee)
+# kasi: "-10%" = polepole, "+10%" = haraka
+wahusika:
+  msimulizi:
+    sauti: daudi
+    kasi: "-5%"
+
+  amani:
+    jina: Amani
+    maelezo: "Amani, a 10 year old Tanzanian boy, short black hair, red t-shirt, blue shorts, big curious eyes"
+    sauti: rafiki
+    kina: "+25Hz"
+    kasi: "+5%"
+
+  neema:
+    jina: Neema
+    maelezo: "Neema, a 9 year old Tanzanian girl, braided hair with yellow beads, yellow dress"
+    sauti: rehema
+    kina: "+20Hz"
+
+  bibi:
+    jina: Bibi Zawadi
+    maelezo: "Bibi Zawadi, a kind elderly African grandmother, grey hair, colorful kanga cloth, walking stick"
+    sauti: zuri
+    kina: "-10Hz"
+    kasi: "-12%"
+
+# ---------- MATUKIO ----------
+# picha:     maelezo ya picha (Kiingereza ni bora)
+# wahusika:  nani anaonekana kwenye picha (husaidia sura zifanane)
+# mazungumzo: mstari bila jina = msimulizi;  "- amani: ..." = Amani anaongea
+# mwendo (si lazima): karibia, mbali, kulia, kushoto, tuli
+matukio:
+  - picha: "wide view of a small African village at sunrise, mud houses, baobab tree, an old stone well in the center"
+    mwendo: karibia
+    mazungumzo:
+      - "Hapo zamani za kale, katika kijiji kidogo cha Mbuyuni, palikuwa na kisima cha ajabu."
+      - "Hakuna aliyejua siri yake, mpaka siku moja..."
+
+  - picha: "a boy and a girl running happily on a dirt path towards an old stone well"
+    wahusika: [amani, neema]
+    mazungumzo:
+      - amani: "Neema! Njoo haraka! Nimesikia sauti ikitoka ndani ya kisima!"
+      - neema: "Amani, acha utani wako. Visima haviongei!"
+
+  - picha: "a boy and a girl leaning over a stone well, looking down with surprised faces, magical blue glow coming from the well"
+    wahusika: [amani, neema]
+    mwendo: karibia
+    mazungumzo:
+      - "Walipochungulia ndani, waliona mwanga wa buluu ukimeta kama nyota."
+      - neema: "Mungu wangu! Unaona kile ninachokiona?"
+
+  - picha: "an elderly grandmother with a walking stick walking towards the well, smiling wisely"
+    wahusika: [bibi]
+    mwendo: kulia
+    mazungumzo:
+      - bibi: "Watoto wangu, msiogope. Kisima hiki kinang'aa kwa wale wenye mioyo safi tu."
+      - amani: "Bibi, wewe unaijua siri yake?"
+
+  - picha: "grandmother sitting under a baobab tree telling a story to a boy and a girl, warm evening light"
+    wahusika: [bibi, amani, neema]
+    mwendo: mbali
+    mazungumzo:
+      - bibi: "Zamani, wanakijiji walishirikiana kuchimba kisima hiki wakati wa ukame mkubwa."
+      - bibi: "Tangu siku hiyo, maji yake hayajawahi kukauka, kwa sababu umoja wao uliishi ndani yake."
+
+  - picha: "the whole village celebrating around the glowing well at night, people dancing, lanterns, happy children"
+    wahusika: [amani, neema]
+    mwendo: kushoto
+    kimya: 1.5
+    mazungumzo:
+      - neema: "Kwa hiyo siri ya kisima ni umoja wetu!"
+      - "Na tangu siku hiyo, Amani na Neema walikuwa walinzi wa kisima cha Mbuyuni."
+      - "Mwisho."
