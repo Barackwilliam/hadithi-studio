@@ -4,6 +4,14 @@
 
 [![Fungua kwenye Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Barackwilliam/hadithi-studio/blob/main/Hadithi_Studio.ipynb)
 
+Kuna njia mbili za kuitumia:
+| | 🌐 Ukurasa wa kudumu (Hugging Face) | 🚀 Google Colab |
+|---|---|---|
+| Kufungua | Link moja tu, hata kwenye simu | Bonyeza ▶️ hatua 3 kila mara |
+| Picha | Huduma ya bure ya mtandaoni (bila GPU) | SDXL kwenye GPU ya bure |
+| Sura za wahusika kufanana | Wastani | **Bora zaidi** (IP-Adapter) |
+| Inafaa kwa | Kazi za haraka, majaribio, kuandika hadithi | Video za mwisho, ubora wa juu |
+
 Unaandika hadithi yako (wahusika, matukio na mazungumzo), na Hadithi Studio itafanya yafuatayo:
 
 1. 👥 **Kuchora wahusika** mara moja, ili sura zao zifanane kwenye kila tukio
@@ -36,6 +44,31 @@ Yote hufanyika kwenye **Google Colab** (GPU ya bure ya Google). Haihitaji kompyu
 3. Ibandike kwenye Hatua ya 3 ya notebook, au kwenye sehemu ya 🔑 ndani ya ukurasa.
 
 Fomu na video zinafanya kazi hata bila key. Ukichagua kuhifadhi kwenye Google Drive, kazi yako itakaa salama kwenye folda `HadithiStudio`, na unaweza kuendelea siku nyingine.
+
+---
+
+## 🌐 Kuweka ukurasa wa kudumu kwenye Hugging Face (bure)
+
+Hii hufanyika mara moja tu. Baada ya hapo, kila mabadiliko yanayopushiwa GitHub yatapelekwa kwenye ukurasa yenyewe.
+
+1. Fungua akaunti ya bure kwenye https://huggingface.co/join
+2. Tengeneza token kwenye https://huggingface.co/settings/tokens: **Create new token → aina "Write"**, kisha nakili.
+3. Kwenye GitHub, nenda **repo hii → Settings → Secrets and variables → Actions → New repository secret**, na uongeze:
+
+   | Jina | Thamani |
+   |---|---|
+   | `HF_TOKEN` | token ya hatua ya 2 |
+   | `APP_USER` | jina la kuingia kwenye ukurasa |
+   | `APP_PASSWORD` | neno la siri la kuingia |
+   | `GEMINI_API_KEY` | *(si lazima)* key ya Gemini, ili Chat ifanye kazi bila kuibandika kila mara |
+
+4. Nenda **Actions → "Majaribio na Hugging Face" → Run workflow**.
+5. Baada ya dakika 5 hadi 10, ukurasa utapatikana kwenye `https://huggingface.co/spaces/<jina-lako-la-HF>/hadithi-studio`
+
+> ⚠️ **Mambo ya kujua:**
+> - Space ya bure "hulala" baada ya siku 2 bila kutumika. Ukiifungua, huamka ndani ya dakika 1 hadi 2.
+> - Space ikianza upya, picha na video zilizotengenezwa hufutika. Kwa hiyo **pakua video yako** mara inapokamilika, na tumia kitufe cha **📤 Pakua hadithi** ili kuhifadhi nakala ya hadithi.
+> - Neno la siri **halikai kwenye code**. Liko kwenye GitHub Secrets tu.
 
 ---
 
@@ -133,6 +166,7 @@ pip install pytest && python -m pytest tests
 | Chaguo | Maana |
 |---|---|
 | `--picha sdxl` | Picha za AI (SDXL + Lightning + IP-Adapter). Inahitaji GPU yenye VRAM ya 12GB au zaidi |
+| `--picha mtandao` | Picha kutoka huduma ya bure ya mtandaoni (bila GPU) |
 | `--picha mfano` | Picha za majaribio (bila GPU) |
 | `--sauti edge` | Sauti 4 za Kiswahili (Microsoft Edge TTS). Hii ndiyo chaguo-msingi |
 | `--sauti mms` | Sauti ya Meta MMS ya Kiswahili, inayotumika ikiwa Edge haipatikani |

@@ -1,0 +1,43 @@
+name: Majaribio na Hugging Face
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  majaribio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt google-genai "gradio>=5.20,<6" pytest
+      - run: python -m pytest -q tests
+
+  tuma-huggingface:
+    needs: majaribio
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Tuma kwenye Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+          APP_USER: ${{ secrets.APP_USER }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PICHA_TOKEN: ${{ secrets.PICHA_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::notice::HF_TOKEN haijawekwa. Ongeza kwenye Settings → Secrets and variables → Actions ili kutuma kwenye Hugging Face."
+            exit 0
+          fi
+          pip install -q "huggingface_hub>=0.23"
+          python space/tuma.py

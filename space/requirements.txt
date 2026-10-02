@@ -1,0 +1,9 @@
+pyyaml>=6.0
+pillow>=10.1
+edge-tts>=7.0
+google-genai>=1.0
+# sauti mbadala (Meta MMS) ikiwa Edge haipatikani
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers>=4.40
+scipy

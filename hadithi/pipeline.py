@@ -4,7 +4,7 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
-from .images import Mchoraji, tengeneza_matukio, tengeneza_wahusika
+from .images import Mchoraji, MchorajiWaMtandao, tengeneza_matukio, tengeneza_wahusika
 from .story import Hadithi, soma
 from .video import tengeneza_video
 from .voices import tengeneza_sauti
@@ -36,11 +36,12 @@ class Studio:
         return self.hadithi
 
     @property
-    def mchoraji(self) -> Mchoraji | None:
+    def mchoraji(self) -> Mchoraji | MchorajiWaMtandao | None:
         if self.injini_ya_picha == "mfano":
             return None
         if self._mchoraji is None:
-            self._mchoraji = Mchoraji(self.hadithi)
+            aina = MchorajiWaMtandao if self.injini_ya_picha == "mtandao" else Mchoraji
+            self._mchoraji = aina(self.hadithi)
         self._mchoraji.hadithi = self.hadithi
         return self._mchoraji
 

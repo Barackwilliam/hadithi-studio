@@ -173,6 +173,7 @@ def _namba(maandishi: str) -> tuple[int, ...]:
 
 def jenga(prog: Programu) -> gr.Blocks:
     data0 = prog.pakia()
+    prog.hifadhi(data0)
 
     with gr.Blocks(title="Hadithi Studio", theme=gr.themes.Soft(primary_hue="orange"), css=CSS) as app:
         data = gr.State(data0)
@@ -193,7 +194,9 @@ def jenga(prog: Programu) -> gr.Blocks:
                 gr.Markdown("Chat inatumia Google Gemini, ambayo ni bure. Pata key yako hapa: "
                             "[aistudio.google.com/apikey](https://aistudio.google.com/apikey). "
                             "Bonyeza **Create API key**, nakili, kisha bandika hapa.")
-                api_key = gr.Textbox(value=prog.api_key, type="password", show_label=False, placeholder="AIza...")
+                # key iliyowekwa kwenye seva haitumwi kwenye browser
+                api_key = gr.Textbox(type="password", show_label=False,
+                                     placeholder="✅ Key imeshawekwa" if prog.api_key else "AIza...")
 
         # ===== 2. FOMU =====
         with gr.Tab("📝 Hadithi"):
@@ -249,10 +252,21 @@ def jenga(prog: Programu) -> gr.Blocks:
                 yaml_kamili = gr.Code(language="yaml", show_label=False)
                 tumia_yaml = gr.Button("✅ Tumia YAML hii", size="sm")
 
+            gr.Markdown("#### 💾 Nakala ya hadithi\nPakua nakala ya hadithi yako ili uweze kuendelea nayo baadaye, "
+                        "hata kwenye Colab.")
+            with gr.Row():
+                pakua_hadithi = gr.DownloadButton("📤 Pakua hadithi", value=str(prog.faili), size="sm")
+                pakia_hadithi = gr.UploadButton("📥 Fungua hadithi (.yaml)", file_types=[".yaml", ".yml", ".txt"],
+                                                size="sm")
+
         # ===== 3. PICHA & VIDEO =====
         with gr.Tab("🎬 Video"):
-            gr.Markdown("Fanya hatua hizi kwa mpangilio. Mara ya kwanza, modeli ya AI hupakiwa kwa dakika 3 hadi 5. "
-                        "Baada ya hapo, kila picha huchukua sekunde chache.")
+            if prog.injini_ya_picha == "sdxl":
+                gr.Markdown("Fanya hatua hizi kwa mpangilio. Mara ya kwanza, modeli ya AI hupakiwa kwa dakika 3 hadi 5. "
+                            "Baada ya hapo, kila picha huchukua sekunde chache.")
+            else:
+                gr.Markdown("Fanya hatua hizi kwa mpangilio. Kila picha huchukua sekunde 10 hadi 60. "
+                            "💡 Kwa sura za wahusika zinazofanana zaidi, tumia toleo la Colab.")
             with gr.Group():
                 gr.Markdown("#### 👥 Hatua A: Wahusika")
                 chora_w = gr.Button("🎨 Chora wahusika", variant="primary")
@@ -390,6 +404,15 @@ def jenga(prog: Programu) -> gr.Blocks:
 
         tumia_yaml.click(tumia_yaml_fn, [data, yaml_kamili, chagua_mhusika, chagua_tukio], [data, *FOMU])
 
+        def pakia_hadithi_fn(d, faili, mh, tk):
+            try:
+                maandishi = Path(faili if isinstance(faili, str) else faili.name).read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as e:
+                raise gr.Error(f"Faili halisomeki: {e}") from e
+            return tumia_yaml_fn(d, maandishi, mh, tk)
+
+        pakia_hadithi.upload(pakia_hadithi_fn, [data, pakia_hadithi, chagua_mhusika, chagua_tukio], [data, *FOMU])
+
         # --- picha na video ---
         def chora_w_fn(d, upya=None):
             s = prog.studio(d)
@@ -431,7 +454,7 @@ def zindua(folda: str | Path = "matokeo", api_key: str | None = None, picha: str
 def main() -> None:
     p = argparse.ArgumentParser(description="Fungua ukurasa wa Hadithi Studio.")
     p.add_argument("--folda", default="matokeo")
-    p.add_argument("--picha", choices=["sdxl", "mfano"], default="sdxl")
+    p.add_argument("--picha", choices=["sdxl", "mtandao", "mfano"], default="sdxl")
     p.add_argument("--sauti", choices=["edge", "mms", "kimya"], default="edge")
     p.add_argument("--share", action="store_true", help="tengeneza link ya umma (gradio.live)")
     p.add_argument("--port", type=int, default=7860)

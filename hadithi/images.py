@@ -1,15 +1,22 @@
-"""Kutengeneza picha za wahusika na matukio kwa AI (SDXL + Lightning + IP-Adapter).
+"""Kutengeneza picha za wahusika na matukio kwa AI.
 
-- SDXL-Lightning: picha moja kwa sekunde chache kwenye GPU ya bure ya Colab (T4).
-- IP-Adapter: hutumia picha ya mhusika kama kumbukumbu ili sura yake ifanane
-  katika kila tukio (muhimu sana kwa tamthiliya).
+Injini mbili:
+- "sdxl" (Colab/GPU): SDXL-Lightning + IP-Adapter. IP-Adapter hutumia picha ya mhusika
+  kama kumbukumbu ili sura yake ifanane katika kila tukio (bora kwa tamthiliya).
+- "mtandao" (bila GPU, k.m. Hugging Face Spaces): huduma ya bure ya mtandaoni (Pollinations).
+  Sura hufanana kidogo kupitia maelezo yale yale na mbegu, lakini si kama IP-Adapter.
 """
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+import os
 import shutil
 import textwrap
+import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -69,6 +76,49 @@ class Mchoraji:
             prompt=maelezo, width=upana, height=urefu, num_inference_steps=self.hatua,
             guidance_scale=0.0, generator=gen, ip_adapter_image=ip,
         ).images[0]
+
+
+class MchorajiWaMtandao:
+    """Huchora kupitia huduma ya bure ya mtandaoni (bila GPU).
+
+    Inaweza kubadilishwa kwa mazingira (environment variables):
+      PICHA_URL    mfano "https://image.pollinations.ai/prompt/{maelezo}"
+      PICHA_MODELI mfano "flux"
+      PICHA_TOKEN  token ya huduma (si lazima; huongeza kikomo cha matumizi)
+    """
+
+    URL = "https://image.pollinations.ai/prompt/{maelezo}"
+
+    def __init__(self, hadithi: Hadithi | None = None):
+        self.hadithi = hadithi
+        self.url = os.environ.get("PICHA_URL", self.URL)
+        self.modeli = os.environ.get("PICHA_MODELI", "flux")
+        self.token = os.environ.get("PICHA_TOKEN", "")
+
+    def chora(self, maelezo: str, upana: int, urefu: int, mbegu: int,
+              kumbukumbu: list[Image.Image] | None = None, nguvu: float = 0.5) -> Image.Image:
+        vigezo = {"width": upana, "height": urefu, "seed": mbegu, "model": self.modeli,
+                  "nologo": "true", "private": "true", "enhance": "false"}
+        if self.token:
+            vigezo["token"] = self.token
+        url = self.url.format(maelezo=urllib.parse.quote(maelezo[:1500], safe="")) + "?" + urllib.parse.urlencode(vigezo)
+        vichwa = {"User-Agent": "HadithiStudio/1.0"}
+        if self.token:
+            vichwa["Authorization"] = f"Bearer {self.token}"
+        kosa: Exception | None = None
+        for jaribio in range(4):
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, headers=vichwa), timeout=180) as r:
+                    aina = r.headers.get("Content-Type", "")
+                    data = r.read()
+                if not aina.startswith("image/"):
+                    raise RuntimeError(f"jibu si picha ({aina}): {data[:200]!r}")
+                return Image.open(io.BytesIO(data)).convert("RGB")
+            except Exception as e:  # noqa: BLE001
+                kosa = e
+                print(f"  ⚠️  Huduma ya picha imeshindwa (jaribio {jaribio + 1}/4): {e}")
+                time.sleep(5 * (jaribio + 1))
+        raise RuntimeError(f"Huduma ya picha ya mtandaoni haipatikani kwa sasa. Jaribu tena baadaye. ({kosa})")
 
 
 def _maelezo_ya_tukio(h: Hadithi, t: Tukio) -> str:
