@@ -49,26 +49,18 @@ Fomu na video zinafanya kazi hata bila key. Ukichagua kuhifadhi kwenye Google Dr
 
 ## 🌐 Kuweka ukurasa wa kudumu kwenye Hugging Face (bure)
 
-Hii hufanyika mara moja tu. Baada ya hapo, kila mabadiliko yanayopushiwa GitHub yatapelekwa kwenye ukurasa yenyewe.
+Hii hufanyika mara moja tu, kupitia notebook ya Colab. Haihitaji GitHub Actions wala GPU.
 
 1. Fungua akaunti ya bure kwenye https://huggingface.co/join
 2. Tengeneza token kwenye https://huggingface.co/settings/tokens: **Create new token → aina "Write"**, kisha nakili.
-3. Kwenye GitHub, nenda **repo hii → Settings → Secrets and variables → Actions → New repository secret**, na uongeze:
-
-   | Jina | Thamani |
-   |---|---|
-   | `HF_TOKEN` | token ya hatua ya 2 |
-   | `APP_USER` | jina la kuingia kwenye ukurasa |
-   | `APP_PASSWORD` | neno la siri la kuingia |
-   | `GEMINI_API_KEY` | *(si lazima)* key ya Gemini, ili Chat ifanye kazi bila kuibandika kila mara |
-
-4. Nenda **Actions → "Majaribio na Hugging Face" → Run workflow**.
+3. Fungua notebook kwenye Colab, bonyeza 🔑 (**Secrets**) upande wa kushoto, kisha ongeza `HF_TOKEN`, `APP_PASSWORD` na *(si lazima)* `GEMINI_API_KEY`. Washa **Notebook access** kwa kila moja.
+4. Bonyeza ▶️ kwenye **Hatua ya 1**, kisha kwenye sehemu ya **🌐 Weka ukurasa wa kudumu**.
 5. Baada ya dakika 5 hadi 10, ukurasa utapatikana kwenye `https://huggingface.co/spaces/<jina-lako-la-HF>/hadithi-studio`
 
 > ⚠️ **Mambo ya kujua:**
 > - Space ya bure "hulala" baada ya siku 2 bila kutumika. Ukiifungua, huamka ndani ya dakika 1 hadi 2.
 > - Space ikianza upya, picha na video zilizotengenezwa hufutika. Kwa hiyo **pakua video yako** mara inapokamilika, na tumia kitufe cha **📤 Pakua hadithi** ili kuhifadhi nakala ya hadithi.
-> - Neno la siri **halikai kwenye code**. Liko kwenye GitHub Secrets tu.
+> - Neno la siri **halikai kwenye code**. Liko kwenye Colab Secrets na kwenye secrets za Space tu.
 
 ---
 

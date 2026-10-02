@@ -1,9 +1,7 @@
 name: Majaribio na Hugging Face
 
+# Inaendeshwa kwa mkono tu (Actions → Run workflow). Njia kuu ya kutuma ni notebook ya Colab.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -19,7 +17,6 @@ jobs:
 
   tuma-huggingface:
     needs: majaribio
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
