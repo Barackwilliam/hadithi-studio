@@ -47,6 +47,7 @@ wahusika:
 # wahusika:  nani anaonekana kwenye picha (husaidia sura zifanane)
 # mazungumzo: mstari bila jina = msimulizi;  "- amani: ..." = Amani anaongea
 # mwendo (si lazima): karibia, mbali, kulia, kushoto, tuli
+# mwendo_ai: true (si lazima) = wahusika wasogee kweli kwa AI (dakika 3-6 kwa tukio; inahitaji GPU)
 matukio:
   - picha: "wide view of a small African village at sunrise, mud houses, baobab tree, an old stone well in the center"
     mwendo: karibia
@@ -56,6 +57,7 @@ matukio:
 
   - picha: "a boy and a girl running happily on a dirt path towards an old stone well"
     wahusika: [amani, neema]
+    mwendo_ai: true
     mazungumzo:
       - amani: "Neema! Njoo haraka! Nimesikia sauti ikitoka ndani ya kisima!"
       - neema: "Amani, acha utani wako. Visima haviongei!"
@@ -84,6 +86,7 @@ matukio:
   - picha: "the whole village celebrating around the glowing well at night, people dancing, lanterns, happy children"
     wahusika: [amani, neema]
     mwendo: kushoto
+    mwendo_ai: true
     kimya: 1.5
     mazungumzo:
       - neema: "Kwa hiyo siri ya kisima ni umoja wetu!"

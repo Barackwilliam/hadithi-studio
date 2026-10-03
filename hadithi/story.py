@@ -56,6 +56,7 @@ class Tukio:
     mwendo: str = "auto"
     picha_faili: str | None = None  # tumia picha yako badala ya AI
     kimya: float = 0.0  # sekunde za ziada bila maneno
+    mwendo_ai: bool = False  # wahusika wasogee kwa AI (image-to-video, inahitaji GPU)
 
 
 @dataclass
@@ -67,6 +68,10 @@ class Mipangilio:
     onyesha_jina: bool = False  # onyesha jina la msemaji kwenye manukuu
     muziki: str | None = None
     sauti_ya_muziki: float = 0.12
+    manukuu: bool = True  # onyesha maneno (subtitles) kwenye video
+    kina_2_5d: bool = True  # matukio yasiyo na mwendo wa AI yapate mwendo wa kina (2.5D)
+    nguvu_ya_mwendo: int = 127  # mwendo wa AI: 60 = kidogo, 127 = wastani, 200 = mwingi
+    modeli_ya_mwendo: str = "stabilityai/stable-video-diffusion-img2vid-xt"
 
 
 @dataclass
@@ -162,6 +167,7 @@ def kutoka_data(data: dict, folda: str | Path = ".") -> Hadithi:
                 mwendo=mwendo,
                 picha_faili=t.get("picha_faili"),
                 kimya=float(t.get("kimya", 0)),
+                mwendo_ai=bool(t.get("mwendo_ai", False)),
             )
         )
     if not matukio:

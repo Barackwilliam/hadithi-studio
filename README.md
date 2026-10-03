@@ -17,7 +17,7 @@ Unaandika hadithi yako (wahusika, matukio na mazungumzo), na Hadithi Studio itaf
 1. 👥 **Kuchora wahusika** mara moja, ili sura zao zifanane kwenye kila tukio
 2. 🖼️ **Kuchora kila tukio** kwa mtindo unaoutaka (katuni 2D, 3D kama Pixar, anime...)
 3. 🎙️ **Kuwapa wahusika sauti za Kiswahili**: sauti 4 (wanawake 2, wanaume 2), ambazo unaweza kubadilisha ziwe za mtoto au za mzee
-4. 🎥 **Kuweka mwendo wa kamera** (zoom, pan) na mfifio kati ya matukio
+4. 🎥 **Kuweka mwendo**: wahusika wanaosogea kwa AI kwenye matukio unayochagua, na mwendo wa kina (2.5D) kwenye mengine
 5. 💬 **Kuweka manukuu (subtitles)** na **muziki wa nyuma**
 6. ✅ **Kutoa video ya MP4** tayari kwa YouTube, TikTok au Instagram
 
@@ -61,6 +61,29 @@ Hii hufanyika mara moja tu, kupitia notebook ya Colab. Haihitaji GitHub Actions 
 > - Space ya bure "hulala" baada ya siku 2 bila kutumika. Ukiifungua, huamka ndani ya dakika 1 hadi 2.
 > - Space ikianza upya, picha na video zilizotengenezwa hufutika. Kwa hiyo **pakua video yako** mara inapokamilika, na tumia kitufe cha **📤 Pakua hadithi** ili kuhifadhi nakala ya hadithi.
 > - Neno la siri **halikai kwenye code**. Liko kwenye Colab Secrets na kwenye secrets za Space tu.
+
+---
+
+## 🎥 Mwendo kwenye video
+
+Kila tukio hupata mojawapo ya aina hizi za mwendo:
+
+| Aina | Inavyoonekana | Muda wa kutengeneza |
+|---|---|---|
+| **🎥 Mwendo wa AI** (`mwendo_ai: true`) | Wahusika na mazingira wanasogea kweli: kukimbia, nywele kupepea, maji kumeta | Dakika 3 hadi 6 kwa kila tukio (Colab T4) |
+| **🌄 Mwendo wa kina (2.5D)** (chaguo-msingi) | Kamera inasogea, na vitu vya karibu vinasogea zaidi ya vya mbali, kwa hiyo picha inaonekana kuwa na kina | Sekunde chache |
+
+Tumia Mwendo wa AI kwa matukio 2 hadi 3 yenye vitendo vikubwa. Mwelekeo wa kamera huchaguliwa kwa `mwendo:` (karibia, mbali, kulia, kushoto, tuli).
+
+> ⚠️ Midomo ya wahusika haifuati maneno, na mara nyingine AI hupotosha mikono au sura kidogo. Tukio likitoka vibaya, lichore upya picha yake (🔁), au ondoa `mwendo_ai` kwenye tukio hilo.
+
+Mipangilio inayohusiana:
+```yaml
+mipangilio:
+  manukuu: true          # false = video bila maneno
+  kina_2_5d: true        # false = mwendo wa kamera wa kawaida tu
+  nguvu_ya_mwendo: 127   # mwendo wa AI: 60 = kidogo, 127 = wastani, 200 = mwingi
+```
 
 ---
 

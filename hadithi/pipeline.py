@@ -1,10 +1,12 @@
 """Hatua zote kwa mpangilio: wahusika → matukio → sauti → video."""
 from __future__ import annotations
 
+import gc
 import random
 from pathlib import Path
 
 from .images import Mchoraji, MchorajiWaMtandao, tengeneza_matukio, tengeneza_wahusika
+from .mwendo import MwendoWaAI, alama_ya_klipu, klipu_ya_mfano
 from .story import Hadithi, soma
 from .video import tengeneza_video
 from .voices import tengeneza_sauti
@@ -63,9 +65,75 @@ class Studio:
         """Chora upya matukio haya kwa mbegu mpya (picha tofauti)."""
         return self.matukio(chora_upya=namba)
 
-    def video(self, kadi_ya_kichwa: bool = True) -> Path:
+    def funga_mchoraji(self) -> None:
+        """Ondoa modeli ya picha kwenye GPU ili modeli ya mwendo ipate nafasi."""
+        if isinstance(self._mchoraji, Mchoraji):
+            torch = self._mchoraji.torch
+            del self._mchoraji.pipe
+            self._mchoraji = None
+            gc.collect()
+            torch.cuda.empty_cache()
+
+    def klipu_za_ai(self, picha: dict[int, Path]) -> dict[int, Path]:
+        """Mwendo wa AI kwa matukio yenye `mwendo_ai: true`. Klipu huhifadhiwa; hutengenezwa upya
+        tu picha au mipangilio ikibadilika. Bila GPU, matukio hayo hupata mwendo wa kina badala yake."""
+        matukio = [t for t in self.hadithi.matukio if t.mwendo_ai and t.namba in picha]
+        if not matukio:
+            return {}
+        mp = self.hadithi.mipangilio
+        upana, urefu = self.hadithi.video_size
+        folda = self.folda / "mwendo"
+        folda.mkdir(parents=True, exist_ok=True)
+        matokeo, kazi = {}, []
+        for t in matukio:
+            alama = alama_ya_klipu(picha[t.namba], mp.nguvu_ya_mwendo, mp.modeli_ya_mwendo, upana, urefu,
+                                   self.injini_ya_picha)
+            f = folda / f"tukio{t.namba:03d}_{alama}.mp4"
+            if f.exists():
+                matokeo[t.namba] = f
+            else:
+                kazi.append((t, f))
+        if not kazi:
+            return matokeo
+
+        if self.injini_ya_picha == "mfano":
+            for t, f in kazi:
+                klipu_ya_mfano(picha[t.namba], f, upana, urefu)
+                matokeo[t.namba] = f
+            return matokeo
+
+        try:
+            import torch
+
+            gpu = torch.cuda.is_available()
+        except ImportError:
+            gpu = False
+        if not gpu:
+            print("  ⚠️  Mwendo wa AI unahitaji GPU; matukio hayo yatapata mwendo wa kina (2.5D) badala yake.")
+            return matokeo
+
+        self.funga_mchoraji()
+        mwendo = MwendoWaAI(mp.modeli_ya_mwendo)
+        try:
+            for i, (t, f) in enumerate(kazi, 1):
+                print(f"  🎥 Mwendo wa AI {i}/{len(kazi)}: tukio {t.namba} (dakika 3-6)...")
+                try:
+                    mwendo.tengeneza(picha[t.namba], f, upana, urefu, mp.mbegu + t.namba, mp.nguvu_ya_mwendo)
+                    matokeo[t.namba] = f
+                except Exception as e:  # noqa: BLE001
+                    f.unlink(missing_ok=True)
+                    print(f"  ⚠️  Tukio {t.namba}: mwendo wa AI umeshindwa ({type(e).__name__}: {str(e)[:150]}); "
+                          "natumia mwendo wa kina.")
+        finally:
+            mwendo.funga()
+        return matokeo
+
+    def video(self, kadi_ya_kichwa: bool = True, manukuu: bool | None = None) -> Path:
         picha = self.matukio()
+        ai = self.klipu_za_ai(picha)
         print("🎙️  Sauti za wahusika...")
         sauti = tengeneza_sauti(self.hadithi, self.folda / "sauti", self.injini_ya_sauti)
         print("🎬 Inaunganisha video...")
-        return tengeneza_video(self.hadithi, self.folda, picha, sauti, kadi_ya_kichwa)
+        return tengeneza_video(self.hadithi, self.folda, picha, sauti, kadi_ya_kichwa, klipu_za_ai=ai,
+                               injini_ya_kina="mfano" if self.injini_ya_picha == "mfano" else "ai",
+                               manukuu_yaonekane=manukuu)

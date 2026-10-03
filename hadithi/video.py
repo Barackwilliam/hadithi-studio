@@ -7,6 +7,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
+from .mwendo import jaza_muda, kadiria_kina, klipu_ya_kina
 from .story import MIENDO, Hadithi, Tukio
 from .util import ffmpeg, fonti, saa_srt
 
@@ -48,6 +49,17 @@ def _klipu(picha: Path, sauti: Path, muda: float, aina_ya_mwendo: str, upana: in
     af = f"afade=t=in:st=0:d={FIFIA / 2},afade=t=out:st={max(muda - FIFIA, 0):.3f}:d={FIFIA}"
     ffmpeg(
         "-i", str(picha), "-i", str(sauti), "-vf", vf, "-af", af,
+        "-t", f"{muda:.3f}", "-r", str(FPS), "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+        "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-ac", "2", str(faili),
+    )
+
+
+def _ongeza_sauti(video: Path, sauti: Path, muda: float, faili: Path) -> None:
+    """Weka sauti na mfifio (fade) kwenye klipu isiyo na sauti."""
+    vf = f"fade=t=in:st=0:d={FIFIA},fade=t=out:st={max(muda - FIFIA, 0):.3f}:d={FIFIA},format=yuv420p"
+    af = f"afade=t=in:st=0:d={FIFIA / 2},afade=t=out:st={max(muda - FIFIA, 0):.3f}:d={FIFIA}"
+    ffmpeg(
+        "-i", str(video), "-i", str(sauti), "-map", "0:v", "-map", "1:a", "-vf", vf, "-af", af,
         "-t", f"{muda:.3f}", "-r", str(FPS), "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-ac", "2", str(faili),
     )
@@ -97,7 +109,14 @@ def _jina_la_faili(kichwa: str) -> str:
 
 
 def tengeneza_video(h: Hadithi, folda: Path, picha: dict[int, Path],
-                    sauti: dict[tuple[int, int], tuple[Path, float]], kadi_ya_kichwa: bool = True) -> Path:
+                    sauti: dict[tuple[int, int], tuple[Path, float]], kadi_ya_kichwa: bool = True,
+                    klipu_za_ai: dict[int, Path] | None = None, injini_ya_kina: str = "ai",
+                    manukuu_yaonekane: bool | None = None) -> Path:
+    """klipu_za_ai: {namba ya tukio: klipu fupi ya mwendo wa AI}. Matukio mengine hupata mwendo wa
+    kina (2.5D) ikiwa `kina_2_5d` imewashwa, la sivyo mwendo wa kamera tu."""
+    klipu_za_ai = klipu_za_ai or {}
+    if manukuu_yaonekane is None:
+        manukuu_yaonekane = h.mipangilio.manukuu
     upana, urefu = h.video_size
     kazi = folda / "kazi"
     kazi.mkdir(parents=True, exist_ok=True)
@@ -135,7 +154,21 @@ def tengeneza_video(h: Hadithi, folda: Path, picha: dict[int, Path],
         _tayarisha_picha(Image.open(picha[t.namba]), upana, urefu).save(p, quality=95)
         aina = t.mwendo if t.mwendo != "auto" else MIENDO[idx % 4]
         k = kazi / f"klipu_{t.namba:03d}.mp4"
-        _klipu(p, s, muda, aina, upana, urefu, k)
+        bila_sauti = kazi / f"mwendo_{t.namba:03d}.mp4"
+        if t.namba in klipu_za_ai:
+            print("     🎥 mwendo wa AI")
+            jaza_muda(klipu_za_ai[t.namba], muda, bila_sauti)
+            _ongeza_sauti(bila_sauti, s, muda, k)
+        elif h.mipangilio.kina_2_5d:
+            try:
+                kina = kadiria_kina(picha[t.namba], injini_ya_kina)
+                klipu_ya_kina(picha[t.namba], kina, aina, muda, upana, urefu, bila_sauti)
+                _ongeza_sauti(bila_sauti, s, muda, k)
+            except ImportError:  # opencv haipo: tumia mwendo wa kamera
+                _klipu(p, s, muda, aina, upana, urefu, k)
+        else:
+            _klipu(p, s, muda, aina, upana, urefu, k)
+        bila_sauti.unlink(missing_ok=True)
         klipu.append(k)
         saa += muda
 
@@ -154,7 +187,7 @@ def tengeneza_video(h: Hadithi, folda: Path, picha: dict[int, Path],
     ukubwa_wa_herufi, nafasi_chini = (18, 22) if upana >= urefu else (11, 70)  # wima: juu ya vitufe vya TikTok
     mtindo = (f"FontName=DejaVu Sans,FontSize={ukubwa_wa_herufi},Bold=1,PrimaryColour=&H00FFFFFF,"
               f"OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV={nafasi_chini}")
-    vf = f"subtitles=manukuu.srt:force_style='{mtindo}'"
+    vf = f"subtitles=manukuu.srt:force_style='{mtindo}'" if manukuu_yaonekane else "null"
 
     jina = _jina_la_faili(h.kichwa)
     hoja = ["-i", ghafi.name]

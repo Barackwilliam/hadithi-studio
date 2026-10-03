@@ -35,6 +35,7 @@ matukio:
   - picha: "a girl looking into an old stone well, magical blue glow, village at sunset"   # KIINGEREZA
     wahusika: [neema]   # wanaoonekana kwenye picha (id zao)
     mwendo: karibia     # karibia | mbali | kulia | kushoto | tuli
+    mwendo_ai: true     # (si lazima) wahusika wasogee kweli kwa AI: kwa matukio ya vitendo tu
     mazungumzo:
       - "Hapo zamani za kale..."            # mstari bila jina = msimulizi
       - neema: "Mungu wangu! Ni nini hiki?" # mhusika anaongea
@@ -47,6 +48,7 @@ Kanuni za hadithi nzuri ya video:
 - Kila tukio la mazungumzo liwe na mhusika anayeongea kwenye "wahusika".
 - Hadithi iwe na mwanzo, mgogoro, kilele, na mwisho wenye funzo. Lugha iwe safi na ya kuvutia.
 - Tumia sauti tofauti kwa wahusika tofauti.
+- Weka "mwendo_ai: true" kwenye matukio 2 hadi 3 tu yenye vitendo vikubwa (kukimbia, kucheza, sherehe, mvua). Kila moja huchukua dakika kadhaa kutengenezwa.
 """
 
 

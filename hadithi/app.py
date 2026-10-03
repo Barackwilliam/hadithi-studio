@@ -112,6 +112,7 @@ class Programu:
             t.get("picha", ""),
             gr.update(choices=wanaoweza, value=[x for x in t.get("wahusika") or [] if x in wahusika]),
             t.get("mwendo", "auto"),
+            bool(t.get("mwendo_ai")),
             fomu.mazungumzo_kwa_maandishi(t.get("mazungumzo") or []),
             fomu.kwa_yaml(data),
         )
@@ -243,6 +244,10 @@ def jenga(prog: Programu) -> gr.Blocks:
                                           ("Mbali (zoom out)", "mbali"), ("Kulia ➡️", "kulia"),
                                           ("Kushoto ⬅️", "kushoto"), ("Tuli", "tuli")],
                                          label="Mwendo wa kamera", scale=1)
+                mwendo_ai = gr.Checkbox(
+                    label="🎥 Mwendo wa AI: wahusika na mazingira wasogee kweli",
+                    info="Inafaa kwa matukio ya vitendo (kukimbia, kucheza, sherehe). Inahitaji GPU, na "
+                         "huchukua dakika 3 hadi 6 kwa kila tukio. Matukio mengine hupata mwendo wa kina (2.5D).")
                 mazungumzo = gr.Textbox(
                     label="Mazungumzo", lines=5,
                     info="Kila sentensi kwenye mstari wake. 'neema: Habari!' maana yake Neema anaongea. "
@@ -288,13 +293,16 @@ def jenga(prog: Programu) -> gr.Blocks:
                     chora_upya_m = gr.Button("🔁 Chora upya", scale=1)
             with gr.Group():
                 gr.Markdown("#### 🎬 Hatua C: Video")
-                kadi = gr.Checkbox(value=True, label="Weka kichwa cha hadithi mwanzoni")
+                with gr.Row():
+                    kadi = gr.Checkbox(value=True, label="Weka kichwa cha hadithi mwanzoni")
+                    manukuu = gr.Checkbox(value=True, label="Onyesha maneno (manukuu) kwenye video")
+                gr.Markdown("🎥 Matukio uliyowekea **Mwendo wa AI** huchukua dakika 3 hadi 6 kila moja.")
                 tengeneza = gr.Button("🎬 Tengeneza video", variant="primary", size="lg")
                 video = gr.Video(label="Video yako")
                 pakua = gr.File(label="⬇️ Pakua video")
 
         FOMU = [kichwa, mtindo, ukubwa, chagua_mhusika, jina, maelezo, sauti, kina, kasi,
-                chagua_tukio, picha, wahusika_tukio, mwendo, mazungumzo, yaml_kamili]
+                chagua_tukio, picha, wahusika_tukio, mwendo, mwendo_ai, mazungumzo, yaml_kamili]
 
         def onyesha(d, mh=None, tk=None):
             return (d, *prog.sehemu_za_fomu(d, mh, tk))
@@ -360,20 +368,21 @@ def jenga(prog: Programu) -> gr.Blocks:
 
         # --- matukio ---
         def chagua_tukio_fn(d, mh, tk):
-            return prog.sehemu_za_fomu(d, mh, tk)[9:14]
+            return prog.sehemu_za_fomu(d, mh, tk)[9:15]
 
-        chagua_tukio.input(chagua_tukio_fn, [data, chagua_mhusika, chagua_tukio], FOMU[9:14])
+        chagua_tukio.input(chagua_tukio_fn, [data, chagua_mhusika, chagua_tukio], FOMU[9:15])
 
-        def hifadhi_tukio_fn(d, mh, tk, pi, wa, mw, mz):
+        def hifadhi_tukio_fn(d, mh, tk, pi, wa, mw, mai, mz):
             if not pi.strip():
                 raise gr.Error("Eleza picha ya tukio.")
-            d, n = fomu.weka_tukio(d, tk or None, pi, wa, mw, mz)
+            d, n = fomu.weka_tukio(d, tk or None, pi, wa, mw, mz, mwendo_ai=mai)
             prog.hifadhi(d)
             gr.Info(f"Tukio {n} limehifadhiwa ✅")
             return onyesha(d, mh, n)
 
         hifadhi_tukio.click(hifadhi_tukio_fn,
-                            [data, chagua_mhusika, chagua_tukio, picha, wahusika_tukio, mwendo, mazungumzo],
+                            [data, chagua_mhusika, chagua_tukio, picha, wahusika_tukio, mwendo, mwendo_ai,
+                             mazungumzo],
                             [data, *FOMU])
 
         def hamisha_fn(mwelekeo):
@@ -455,12 +464,12 @@ def jenga(prog: Programu) -> gr.Blocks:
         chora_upya_m.click(chora_m_fn, [data, upya_m], [gal_w, gal_m], **nzito)
 
         @kazi_nzito
-        def tengeneza_fn(d, k):
+        def tengeneza_fn(d, k, mk):
             s = prog.studio(d)
-            v = s.video(kadi_ya_kichwa=k)
+            v = s.video(kadi_ya_kichwa=k, manukuu=mk)
             return (str(v), str(v), prog.galeria_ya_matukio(d, s.matukio()))
 
-        tengeneza.click(tengeneza_fn, [data, kadi], [video, pakua, gal_m], **nzito)
+        tengeneza.click(tengeneza_fn, [data, kadi, manukuu], [video, pakua, gal_m], **nzito)
 
         app.load(lambda d: (*prog.sehemu_za_fomu(d), chaguo_za_upya_w(d)), data, [*FOMU, upya_w])
     return app

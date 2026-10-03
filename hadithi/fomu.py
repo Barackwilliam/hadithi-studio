@@ -122,7 +122,8 @@ def futa_mhusika(data: dict, id_: str) -> dict:
     return data
 
 
-def weka_tukio(data: dict, namba: int | None, picha: str, wahusika: list[str], mwendo: str, mazungumzo: str) -> tuple[dict, int]:
+def weka_tukio(data: dict, namba: int | None, picha: str, wahusika: list[str], mwendo: str, mazungumzo: str,
+               mwendo_ai: bool = False) -> tuple[dict, int]:
     """Ongeza (namba=None) au badilisha tukio. namba inaanzia 1."""
     data = copy.deepcopy(data)
     matukio = data.setdefault("matukio", [])
@@ -131,6 +132,8 @@ def weka_tukio(data: dict, namba: int | None, picha: str, wahusika: list[str], m
         t["wahusika"] = list(wahusika)
     if mwendo and mwendo != "auto":
         t["mwendo"] = mwendo
+    if mwendo_ai:
+        t["mwendo_ai"] = True
     t["mazungumzo"] = maandishi_kwa_mazungumzo(mazungumzo, data.get("wahusika", {}))
     if namba is None or namba > len(matukio):
         matukio.append(t)

@@ -139,3 +139,12 @@ def test_mwandishi_huruka_modeli_zisizo_na_mgao_wa_bure():
     m.modeli, m._akiba = "gemini-2.5-flash", None
     with pytest.raises(KosaLaAI, match="Mgao wa bure"):
         m.jibu([], "habari")
+
+
+def test_mwendo_ai_kwenye_fomu():
+    d = fomu.hadithi_tupu()
+    d, n = fomu.weka_tukio(d, None, "children dancing", [], "auto", "Walicheza!", mwendo_ai=True)
+    assert d["matukio"][n - 1]["mwendo_ai"] is True
+    assert kutoka_data(d).matukio[n - 1].mwendo_ai is True
+    d, n = fomu.weka_tukio(d, n, "children dancing", [], "auto", "Walicheza!")
+    assert "mwendo_ai" not in d["matukio"][n - 1]
