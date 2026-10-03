@@ -101,6 +101,24 @@ class Mchoraji:
             guidance_scale=0.0, generator=gen, ip_adapter_image=ip,
         ).images[0]
 
+    def hariri(self, picha: Image.Image, maelezo: str, mbegu: int, nguvu_ya_mabadiliko: float = 0.55,
+               kumbukumbu: list[Image.Image] | None = None, nguvu: float = 0.5) -> Image.Image:
+        """Badilisha picha iliyopo kwa maelezo mapya (img2img), ukihifadhi mpangilio wake."""
+        if getattr(self, "_img2img", None) is None:
+            from diffusers import StableDiffusionXLImg2ImgPipeline
+
+            self._img2img = StableDiffusionXLImg2ImgPipeline.from_pipe(self.pipe)
+        self.pipe.set_ip_adapter_scale(nguvu if kumbukumbu else 0.0)
+        ip = [kumbukumbu] if kumbukumbu else [Image.new("RGB", (224, 224), "white")]
+        w, h = picha.size
+        w, h = w - w % 8, h - h % 8
+        gen = self.torch.Generator("cuda").manual_seed(mbegu)
+        return self._img2img(
+            prompt=maelezo, image=picha.convert("RGB").resize((w, h)), strength=nguvu_ya_mabadiliko,
+            num_inference_steps=max(self.hatua, round(self.hatua / nguvu_ya_mabadiliko)),
+            guidance_scale=0.0, generator=gen, ip_adapter_image=ip,
+        ).images[0]
+
 
 class MchorajiWaMtandao:
     """Huchora kupitia huduma ya bure ya mtandaoni (bila GPU).

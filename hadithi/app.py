@@ -475,13 +475,53 @@ def jenga(prog: Programu) -> gr.Blocks:
     return app
 
 
+def _kiungo(url: str) -> None:
+    """Onyesha kitufe kikubwa cha kufungua Studio (Colab/Jupyter), au andika link tu."""
+    print(f"\n🎬 Hadithi Studio Pro: {url}\n")
+    try:
+        from IPython.display import HTML, display
+
+        display(HTML(
+            f'<a href="{url}" target="_blank" style="display:inline-block;padding:14px 22px;border-radius:12px;'
+            'background:linear-gradient(135deg,#ff6a3d,#ffc14d);color:#1a0f05;font:700 17px sans-serif;'
+            f'text-decoration:none">🎬 Fungua Hadithi Studio →</a><p style="font:14px sans-serif">{url}</p>'))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def zindua(folda: str | Path = "matokeo", api_key: str | None = None, picha: str = "sdxl", sauti: str = "edge",
-           share: bool = True, **kwargs):
-    """Fungua ukurasa. Kwenye Colab, link ya umma (…gradio.live) itaonekana; ifungue hata kwenye simu."""
-    prog = Programu(folda, api_key, picha, sauti)
-    app = jenga(prog)
-    app.queue(default_concurrency_limit=1)
-    return app.launch(share=share, allowed_paths=[str(Path(folda).resolve())], **kwargs)
+           share: bool = True, ukurasa: str = "studio", **kwargs):
+    """Fungua ukurasa. Kwenye Colab, link ya umma (…gradio.live) itaonekana; ifungue hata kwenye simu.
+
+    ukurasa="studio": ukurasa wa kitaalamu (/studio) wenye miradi mingi, storyboard na kuhariri picha.
+    ukurasa="rahisi": ukurasa wa awali wa Gradio.
+    """
+    if ukurasa != "studio":
+        prog = Programu(folda, api_key, picha, sauti)
+        app = jenga(prog)
+        app.queue(default_concurrency_limit=1)
+        return app.launch(share=share, allowed_paths=[str(Path(folda).resolve())], **kwargs)
+
+    from .seva import Kiini, weka_kwenye
+
+    folda = Path(folda)
+    kiini = Kiini(folda.parent, folda.name, api_key or os.environ.get("GEMINI_API_KEY", ""), picha, sauti)
+    with gr.Blocks(title="Hadithi Studio", theme=gr.themes.Soft(primary_hue="orange"), css=CSS) as kizinduzi:
+        gr.HTML('<div style="text-align:center;padding:60px 20px;font-family:sans-serif">'
+                '<div style="font-size:48px">🎬</div><h1>Hadithi Studio</h1>'
+                '<p>Ukurasa wa Studio uko hapa:</p>'
+                '<a href="/studio" style="display:inline-block;padding:14px 26px;border-radius:12px;'
+                'background:linear-gradient(135deg,#ff6a3d,#ffc14d);color:#1a0f05;font-weight:700;'
+                'text-decoration:none;font-size:18px">Fungua Studio →</a></div>')
+    kuzuia = kwargs.pop("debug", False) or kwargs.pop("block", False)
+    kizinduzi.queue()
+    _, local, umma = kizinduzi.launch(share=share, prevent_thread_lock=True,
+                                      allowed_paths=[str(folda.parent.resolve())], **kwargs)
+    weka_kwenye(kizinduzi.app, kiini)
+    _kiungo(f"{(umma or local).rstrip('/')}/studio")
+    if kuzuia:
+        kizinduzi.block_thread()
+    return kiini
 
 
 def main() -> None:
@@ -491,8 +531,9 @@ def main() -> None:
     p.add_argument("--sauti", choices=["edge", "mms", "kimya"], default="edge")
     p.add_argument("--share", action="store_true", help="tengeneza link ya umma (gradio.live)")
     p.add_argument("--port", type=int, default=7860)
+    p.add_argument("--ukurasa", choices=["studio", "rahisi"], default="studio")
     a = p.parse_args()
-    zindua(a.folda, picha=a.picha, sauti=a.sauti, share=a.share, server_port=a.port)
+    zindua(a.folda, picha=a.picha, sauti=a.sauti, share=a.share, server_port=a.port, ukurasa=a.ukurasa, block=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="sw">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hadithi Studio</title>
+  <meta name="theme-color" content="#0d0e12">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/studio/studio.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand" data-go="miradi" title="Miradi yote">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1a0f05" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M13 4h5.5c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5H13z"/><path d="M15.5 10.2 18 12l-2.5 1.8z" fill="#1a0f05"/></svg>
+      </div>
+      <span class="name">Hadithi Studio</span><small>PRO</small>
+    </div>
+    <div class="project-switch" data-go="miradi" title="Badilisha hadithi">
+      <span id="jina-la-mradi">…</span><span class="faint">▾</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill gpu" id="pill-gpu"><span class="dot"></span><span>GPU</span></span>
+    <span class="pill" id="pill-ai"><span class="dot"></span><span>Gemini</span></span>
+    <button class="icon-btn" id="mandhari" title="Giza / Mwanga">◐</button>
+  </header>
+
+  <nav class="side" id="nav-side"></nav>
+
+  <main id="main"><div class="empty"><div class="spinner" style="margin:0 auto 12px"></div>Inapakia…</div></main>
+</div>
+
+<nav class="bottom" id="nav-bottom"></nav>
+<div class="toasts" id="toasts"></div>
+<div id="tabaka"></div>
+<div class="dock hidden" id="dock"></div>
+
+<script src="/studio/studio.js"></script>
+</body>
+</html>

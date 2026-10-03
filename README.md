@@ -25,6 +25,21 @@ Yote hufanyika kwenye **Google Colab** (GPU ya bure ya Google). Haihitaji kompyu
 
 ---
 
+## 🎨 Hadithi Studio Pro
+
+Ukurasa wa kitaalamu (`/studio`), unaofanya kazi kwenye kompyuta na simu:
+
+| | |
+|---|---|
+| 🗂️ **Hadithi zako** | Hadithi nyingi, kila moja na picha na video zake. **📺 Episode inayofuata** huunda episode mpya ya series yenye wahusika wale wale |
+| 💬 **Andika** | Ongea na AI (Gemini) ikuandikie hadithi, au iombe ibadilishe chochote |
+| 👥 **Wahusika** | Sura, sauti (🔊 sikiliza), na **✨ Picha yangu → Katuni**: pakia picha yako halisi, nayo igeuzwe kuwa mhusika |
+| 🎞️ **Storyboard** | Matukio kama kadi: mhariri wa mazungumzo, mwendo wa kamera, 🎥 mwendo wa AI, kupanga upya |
+| ✨ **Hariri kwa maneno** | *"Fanya iwe usiku"*, *"mvalishe kofia nyekundu"*: kama Nano Banana. Inatumia Gemini kwanza, na GPU ikishindikana. **↩️ Rudisha** hurudisha toleo la awali |
+| 🎬 **Video** | Kadi ya kichwa, manukuu, mwendo wa kina, muziki; maendeleo yanaonekana moja kwa moja, kisha pakua |
+
+---
+
 ## 🚀 Jinsi ya kutumia
 
 1. Bonyeza kitufe cha **Open in Colab** hapo juu.
@@ -172,7 +187,7 @@ python -m hadithi mifano/siri_ya_kisima.yaml --picha mfano
 
 # ukurasa wa wavuti (http://localhost:7860)
 python -m hadithi.app --folda matokeo            # --share kwa link ya umma
-python -m hadithi.app --picha mfano --sauti kimya # majaribio bila GPU wala mtandao
+python -m hadithi.app --picha mfano --sauti kimya # majaribio bila GPU wala mtandao → http://localhost:7860/studio
 
 # majaribio ya code
 pip install pytest && python -m pytest tests

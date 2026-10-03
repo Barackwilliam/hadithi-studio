@@ -32,6 +32,11 @@ class Studio:
         print(f"📖 '{self.hadithi.kichwa}': matukio {len(self.hadithi.matukio)}, "
               f"wahusika {len(self.hadithi.wahusika)}")
 
+    def badilisha_mradi(self, faili_la_hadithi: str | Path, folda: str | Path) -> Hadithi:
+        """Hamia hadithi nyingine bila kupakia modeli upya (modeli hubaki kwenye GPU)."""
+        self.faili, self.folda = Path(faili_la_hadithi), Path(folda)
+        return self.pakia_upya()
+
     def pakia_upya(self) -> Hadithi:
         """Soma tena faili la hadithi baada ya kulibadilisha."""
         self.hadithi = soma(self.faili)

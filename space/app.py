@@ -26,4 +26,5 @@ zindua(
     server_port=7860,
     auth=(mtumiaji, neno_la_siri),
     auth_message="🎬 Hadithi Studio: ingia kwa jina na neno la siri.",
+    block=True,
 )
