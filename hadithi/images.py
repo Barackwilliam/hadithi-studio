@@ -80,7 +80,11 @@ class Mchoraji:
         pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config, timestep_spacing="trailing")
         pipe.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name="ip-adapter_sdxl.bin")
         pipe.to("cuda")
-        pipe.enable_vae_tiling()  # picha kubwa (ubora wa sinema) bila kujaza GPU
+        # picha kubwa (ubora wa sinema) bila kujaza GPU; diffusers mpya: pipe.vae.enable_tiling()
+        if hasattr(pipe.vae, "enable_tiling"):
+            pipe.vae.enable_tiling()
+        elif hasattr(pipe, "enable_vae_tiling"):
+            pipe.enable_vae_tiling()
         self.pipe = pipe
         self.torch = torch
         self.hatua = hatua
