@@ -160,3 +160,36 @@ def test_shots_kwenye_fomu_na_hadithi():
     d["matukio"][0]["shots"] = [{"picha": "no action"}]
     with pytest.raises(Exception, match="kitendo"):
         kutoka_data(d)
+
+
+def test_mwandishi_seva_ya_gemini_ikijaa(monkeypatch):
+    from google.genai import errors
+
+    from hadithi.chat import KosaLaAI
+
+    monkeypatch.setattr("hadithi.chat.time.sleep", lambda s: None)
+    simu = []
+
+    class Models:
+        def __init__(self, ipone):
+            self.ipone = ipone
+
+        def generate_content(self, model, contents, config):
+            simu.append(model)
+            if model != self.ipone:
+                raise errors.ServerError(503, {"error": {"code": 503, "message": "high demand", "status": "UNAVAILABLE"}})
+            return types.SimpleNamespace(text="Sawa!")
+
+        def list(self):
+            return [types.SimpleNamespace(name=f"models/{n}", supported_actions=["generateContent"])
+                    for n in ["gemini-flash-latest", "gemini-2.5-flash-lite"]]
+
+    m = Mwandishi.__new__(Mwandishi)
+    m.client = types.SimpleNamespace(models=Models("gemini-2.5-flash-lite"))
+    m.modeli, m._akiba = "gemini-flash-latest", None
+    assert m.jibu([], "habari") == "Sawa!" and simu == ["gemini-flash-latest", "gemini-2.5-flash-lite"]
+
+    m.client = types.SimpleNamespace(models=Models("hakuna"))
+    m.modeli, m._akiba = "gemini-flash-latest", None
+    with pytest.raises(KosaLaAI, match="watumiaji wengi"):
+        m.jibu([], "habari")

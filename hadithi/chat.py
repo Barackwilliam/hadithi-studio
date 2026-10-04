@@ -5,6 +5,7 @@ Pata key ya bure: https://aistudio.google.com/apikey
 from __future__ import annotations
 
 import re
+import time
 
 MODELI_MSINGI = "gemini-flash-latest"
 
@@ -149,6 +150,17 @@ class Mwandishi:
                 # modeli hii haipo / haina mgao wa bure / mgao umeisha: jaribu nyingine
                 if len(jaribu) == i:
                     jaribu += [m for m in self._modeli_za_akiba() if m not in jaribu]
+            except errors.ServerError as e:
+                # 500/503: seva za Google zina watumiaji wengi; subiri kidogo kisha jaribu modeli nyingine
+                kosa_la_mwisho = e
+                time.sleep(min(2 * i, 6))
+                if len(jaribu) == i:
+                    jaribu += [m for m in self._modeli_za_akiba() if m not in jaribu]
+                    if len(jaribu) == i:  # hakuna modeli nyingine: jaribu ile ile mara moja zaidi
+                        jaribu.append(modeli)
+        if isinstance(kosa_la_mwisho, errors.ServerError):
+            raise KosaLaAI("Seva za Gemini zina watumiaji wengi sana kwa sasa (tatizo la Google, si lako). "
+                           "Subiri dakika 1 hadi 2, kisha tuma ujumbe wako tena.")
         if getattr(kosa_la_mwisho, "code", None) == 429:
             raise KosaLaAI("Mgao wa bure wa Gemini umeisha kwa sasa. Subiri dakika chache (au kesho), kisha jaribu "
                            "tena. Wakati huo unaweza kuandika au kurekebisha hadithi kwenye tabo ya 📝 Hadithi.")

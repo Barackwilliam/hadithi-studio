@@ -87,6 +87,9 @@ def gemini_picha(api_key: str, maagizo: str, picha: list[Image.Image]) -> Image.
             if getattr(e, "code", None) in (400, 404, 429):
                 continue
             raise
+        except errors.ServerError as e:  # 500/503: seva za Google zimejaa; jaribu modeli nyingine
+            kosa = e
+            continue
         for mgombea in r.candidates or []:
             for sehemu in (mgombea.content.parts if mgombea.content else []) or []:
                 if sehemu.inline_data and sehemu.inline_data.data:
