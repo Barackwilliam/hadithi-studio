@@ -100,17 +100,32 @@ class Mchoraji:
             # IP-Adapter imepakiwa, hivyo inahitaji picha; tunaizima kwa nguvu 0
             self.pipe.set_ip_adapter_scale(0.0)
             ip = [Image.new("RGB", (224, 224), "white")]
+        self._hakikisha_aina()
         gen = self.torch.Generator("cuda").manual_seed(mbegu)
         return self.pipe(
             prompt=maelezo, width=upana, height=urefu, num_inference_steps=self.hatua,
             guidance_scale=0.0, generator=gen, ip_adapter_image=ip,
         ).images[0]
 
+    def _hakikisha_aina(self) -> None:
+        """Sehemu zote za modeli ziwe float16 (kosa likitokea katikati, mf. GPU kujaa, zinaweza kuchanganyika)."""
+        ie = getattr(self.pipe, "image_encoder", None)
+        if ie is not None and next(ie.parameters()).dtype != self.torch.float16:
+            ie.to(dtype=self.torch.float16)
+
+    def _gpu_kubwa(self) -> bool:
+        return self.torch.cuda.get_device_properties(0).total_memory >= 20e9
+
     def boresha(self, picha: Image.Image, maelezo: str, mbegu: int, kumbukumbu: list[Image.Image] | None = None,
                 nguvu: float = 0.5) -> Image.Image:
-        """"Hires fix": panua picha mara 1.5 kisha ichore upya kidogo ili ipate undani zaidi."""
+        """"Hires fix": panua picha mara 1.5 kisha ichore upya kidogo ili ipate undani zaidi.
+        Kwenye GPU ndogo (mf. T4 ya GB 15) hii hujaza GPU, hivyo tunapanua kwa njia ya kawaida tu."""
         w, h = picha.size
         kubwa = picha.resize((round(w * 1.5 / 8) * 8, round(h * 1.5 / 8) * 8), Image.LANCZOS)
+        if not self._gpu_kubwa():
+            from PIL import ImageFilter
+
+            return kubwa.filter(ImageFilter.UnsharpMask(radius=2, percent=60, threshold=2))
         return self.hariri(kubwa, maelezo, mbegu, 0.3, kumbukumbu, nguvu)
 
     def hariri(self, picha: Image.Image, maelezo: str, mbegu: int, nguvu_ya_mabadiliko: float = 0.55,
@@ -119,7 +134,9 @@ class Mchoraji:
         if getattr(self, "_img2img", None) is None:
             from diffusers import StableDiffusionXLImg2ImgPipeline
 
-            self._img2img = StableDiffusionXLImg2ImgPipeline.from_pipe(self.pipe)
+            # vipengele vile vile (bila kubadilisha aina zao, tofauti na from_pipe)
+            self._img2img = StableDiffusionXLImg2ImgPipeline(**self.pipe.components)
+        self._hakikisha_aina()
         self.pipe.set_ip_adapter_scale(nguvu if kumbukumbu else 0.0)
         ip = [kumbukumbu] if kumbukumbu else [Image.new("RGB", (224, 224), "white")]
         w, h = picha.size
@@ -280,7 +297,7 @@ def tengeneza_matukio(h: Hadithi, folda: Path, picha_za_wahusika: dict[str, Path
                 kumbukumbu = [Image.open(picha_za_wahusika[w]).convert("RGB") for w in kumbukumbu_za]
                 img = mchoraji.chora(maelezo, upana, urefu, mbegu, kumbukumbu, h.mipangilio.nguvu_ya_mhusika)
                 if hires and hasattr(mchoraji, "boresha"):
-                    print("     ✨ inaongeza undani (hires)")
+                    print("     ✨ inaongeza undani (hires)" if mchoraji._gpu_kubwa() else "     ✨ inapanua picha (x1.5)")
                     try:
                         img = mchoraji.boresha(img, maelezo, mbegu, kumbukumbu, h.mipangilio.nguvu_ya_mhusika)
                     except Exception as e:  # noqa: BLE001  (mf. GPU imejaa): baki na picha ya kawaida
