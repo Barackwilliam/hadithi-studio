@@ -36,6 +36,10 @@ matukio:
     wahusika: [neema]   # wanaoonekana kwenye picha (id zao)
     mwendo: karibia     # karibia | mbali | kulia | kushoto | tuli
     mwendo_ai: true     # (si lazima) wahusika wasogee kweli kwa AI: kwa matukio ya vitendo tu
+    shots:              # Hali ya Filamu: shots 2-3 za tukio, kama filamu (KIINGEREZA)
+      - kitendo: "the girl slowly leans over the well, blue light glows on her face, camera slowly pushes in"
+      - kitendo: "she gasps and steps back in surprise"
+        picha: "close-up of a surprised girl's face lit by blue light"   # (si lazima) shot yenye picha yake
     mazungumzo:
       - "Hapo zamani za kale..."            # mstari bila jina = msimulizi
       - neema: "Mungu wangu! Ni nini hiki?" # mhusika anaongea
@@ -49,6 +53,7 @@ Kanuni za hadithi nzuri ya video:
 - Hadithi iwe na mwanzo, mgogoro, kilele, na mwisho wenye funzo. Lugha iwe safi na ya kuvutia.
 - Tumia sauti tofauti kwa wahusika tofauti.
 - Weka "mwendo_ai: true" kwenye matukio 2 hadi 3 tu yenye vitendo vikubwa (kukimbia, kucheza, sherehe, mvua). Kila moja huchukua dakika kadhaa kutengenezwa.
+- Kila tukio liwe na "shots" 2 hadi 3 (filamu halisi): kila "kitendo" kieleze mwendo unaoonekana wa sekunde 4 (nani anafanya nini, hisia, na mwendo wa kamera: "camera slowly pushes in", "tracking shot", "wide shot"). Tumia "picha" kwenye shot kwa close-up au pembe mpya. Vitendo viwe rahisi na vya mtu mmoja au wawili; epuka vitendo vingi kwa wakati mmoja.
 """
 
 

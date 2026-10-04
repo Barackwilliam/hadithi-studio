@@ -285,3 +285,38 @@ def tengeneza_matukio(h: Hadithi, folda: Path, picha_za_wahusika: dict[str, Path
             _hifadhi(img, faili, alama, mbegu)
         matokeo[t.namba] = faili
     return matokeo
+
+
+def tengeneza_picha_za_shots(h: Hadithi, folda: Path, picha_za_wahusika: dict[str, Path], picha_za_matukio: dict[int, Path],
+                             injini: str = "sdxl", mchoraji=None) -> dict[tuple[int, int], Path]:
+    """Picha ya kuanzia (keyframe) ya kila shot ya Hali ya Filamu. Shot isiyo na 'picha' yake hutumia
+    picha ya tukio lenyewe."""
+    folda.mkdir(parents=True, exist_ok=True)
+    upana, urefu = h.picha_size
+    matokeo: dict[tuple[int, int], Path] = {}
+    for t in h.matukio:
+        shots = t.shots or []
+        for i in range(max(1, len(shots))):
+            sh = shots[i] if shots else None
+            if not sh or not sh.picha:
+                matokeo[(t.namba, i)] = picha_za_matukio[t.namba]
+                continue
+            wahusika = sh.wahusika if sh.wahusika is not None else t.wahusika
+            maelezo = ", ".join([sh.picha, h.mtindo, *(h.wahusika[w].maelezo for w in wahusika if h.wahusika[w].maelezo),
+                                 "high quality"])
+            kumb = [w for w in wahusika if w in picha_za_wahusika]
+            faili = folda / f"tukio{t.namba:03d}_shot{i}.png"
+            alama = _alama(maelezo, upana, urefu, injini, h.mipangilio.modeli, *(
+                f"{w}:{picha_za_wahusika[w].stat().st_mtime_ns}" for w in kumb))
+            if _inahitaji_kuchorwa(faili, alama):
+                mbegu = h.mipangilio.mbegu + t.namba * 100 + i
+                print(f"  🎨 Tukio {t.namba}, shot {i + 1}: {sh.picha[:55]}")
+                if injini == "mfano":
+                    img = _picha_ya_mfano(f"Tukio {t.namba} shot {i + 1}: {sh.picha}", upana, urefu, mbegu)
+                else:
+                    img = mchoraji.chora(maelezo, upana, urefu, mbegu,
+                                         [Image.open(picha_za_wahusika[w]).convert("RGB") for w in kumb],
+                                         h.mipangilio.nguvu_ya_mhusika)
+                _hifadhi(img, faili, alama, mbegu)
+            matokeo[(t.namba, i)] = faili
+    return matokeo

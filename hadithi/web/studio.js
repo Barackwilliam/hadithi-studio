@@ -360,7 +360,7 @@ async function vStoryboard() {
       <div class="card scene" data-act="tukio" data-id="${n}">
         <div class="thumb ${ar()}" style="${p ? `background-image:url('${p}')` : ""}">${p ? "" : "🎨 Bado haijachorwa"}
           <span class="badge num">${n}</span>
-          <span class="tags">${x.mwendo_ai ? '<span class="badge ai">🎥 AI</span>' : ""}${x.mwendo && x.mwendo !== "auto" ? `<span class="badge">${esc(x.mwendo)}</span>` : ""}</span>
+          <span class="tags">${(x.shots || []).length ? `<span class="badge">🎬 ${x.shots.length}</span>` : ""}${x.mwendo_ai ? '<span class="badge ai">🎥 AI</span>' : ""}${x.mwendo && x.mwendo !== "auto" ? `<span class="badge">${esc(x.mwendo)}</span>` : ""}</span>
         </div>
         <div class="body">
           <div class="line">${mstari}</div>
@@ -401,6 +401,9 @@ function dTukio(n) {
       <div class="seg" id="t-mwendo">${MIENDO.map(([v, l]) => `<button class="${(x.mwendo || "auto") === v ? "on" : ""}" data-v="${v}" data-act="chagua-seg">${l}</button>`).join("")}</div></div>
     <label class="switch"><input type="checkbox" id="t-ai" ${x.mwendo_ai ? "checked" : ""}><span class="track"></span>
       <span class="lbl"><b>🎥 Mwendo wa AI</b><small>Wahusika na mazingira wasogee kweli. Inahitaji GPU, na huchukua dakika 3 hadi 6.</small></span></label>
+    <div class="field">🎬 Shots za filamu <span class="hint">Hali ya Filamu: kila shot ni video ya sekunde ~4. Eleza kitendo na mwendo wa kamera kwa Kiingereza. "Picha" ni ya hiari (mf. close-up).</span>
+      <div class="lines" id="t-shots">${(x.shots || []).map((sh) => shotEd(sh)).join("")}</div>
+      <button class="btn sm ghost" data-act="shot-ongeza" style="align-self:flex-start">＋ Ongeza shot</button></div>
     <div class="field">Mazungumzo
       <div class="lines" id="t-mistari">${mistari.map((m) => mstariEd(m, wasemaji)).join("")}</div>
       <button class="btn sm ghost" data-act="mstari-ongeza" style="align-self:flex-start">＋ Ongeza mstari</button></div>
@@ -409,6 +412,15 @@ function dTukio(n) {
     <button class="btn primary" data-act="hifadhi-tukio" data-id="${n}">💾 Hifadhi</button>
     <button class="btn danger ghost" data-act="tukio-futa" data-id="${n}" style="margin-left:auto">🗑️ Futa tukio</button>
   </div>`;
+}
+
+function shotEd(sh) {
+  return `<div class="line-ed shot-ed" style="grid-template-columns:1fr 34px">
+    <div class="stack" style="gap:6px">
+      <textarea rows="2" class="sh-kitendo" placeholder="Kitendo: the boy runs toward the well, camera tracking">${esc(sh.kitendo || "")}</textarea>
+      <input type="text" class="sh-picha" placeholder="Picha ya shot (si lazima): close-up of the boy's face" value="${esc(sh.picha || "")}">
+    </div>
+    <button class="btn sm ghost x" data-act="mstari-futa" title="Ondoa">✕</button></div>`;
 }
 
 function mstariEd(m, wasemaji) {
@@ -425,7 +437,10 @@ async function vVideo() {
   const hakuna = t.filter((_, i) => !pichaT(i + 1)).length;
   const mp = H().mipangilio || {};
   const ubora = mp.ubora || "juu";
-  const muda = hakuna * (ubora === "sinema" ? 20 : 8) + ai * (ubora === "sinema" ? 330 : 270) + t.length * ({ kawaida: 10, juu: 25, sinema: 35 }[ubora]) + 20;
+  const filamu = !!mp.filamu, injiniF = mp.injini_ya_filamu || "ltx";
+  const klipu = t.reduce((n, x) => n + Math.max((x.shots || []).length || 1, Math.ceil(((x.mazungumzo || []).length * 4 + 2) / 4)), 0);
+  const dkKlipu = injiniF === "wan" ? 12 : 4;
+  const muda = hakuna * (ubora === "sinema" ? 20 : 8) + (filamu ? klipu * dkKlipu * 60 + 300 : ai * (ubora === "sinema" ? 330 : 270)) + t.length * ({ kawaida: 10, juu: 25, sinema: 35 }[ubora]) + 20;
   const v = S.h.video[0];
   return `
   <div class="view-head"><div><h1>Video</h1><p>Unganisha picha, mwendo, sauti, manukuu na muziki kuwa video moja.</p></div>
@@ -442,9 +457,15 @@ async function vVideo() {
     <div class="cta stack">
       <div><b style="font-size:18px">Tengeneza video</b>
         <div class="estimate">
-          <span class="pill">🎞️ ${t.length} matukio</span><span class="pill">🎥 ${ai} AI</span>
+          <span class="pill">🎞️ ${t.length} matukio</span>${filamu ? `<span class="pill">🎬 ~${klipu} klipu</span>` : `<span class="pill">🎥 ${ai} AI</span>`}
           ${hakuna ? `<span class="pill warn"><span class="dot"></span>${hakuna} picha mpya</span>` : ""}
           <span class="pill">⏱️ ~${dakika(muda)}</span></div></div>
+      <div class="card pad" style="border-color:${filamu ? "var(--accent)" : "var(--line)"};background:${filamu ? "color-mix(in srgb,var(--accent) 8%,var(--panel))" : "var(--panel-2)"}">
+        <label class="switch"><input type="checkbox" data-act="filamu" ${filamu ? "checked" : ""}><span class="track"></span>
+          <span class="lbl"><b>🎬 Hali ya Filamu</b><small>Kila tukio linakuwa video halisi: wahusika wanafanya vitendo vya shots zako, badala ya picha zinazosogea.</small></span></label>
+        ${filamu ? `<div class="seg" style="margin-top:10px">${[["ltx", "⚡ LTX-Video (haraka)"], ["wan", "💎 Wan 2.2 (ubora wa juu)"]].map(([v, l]) => `<button class="${injiniF === v ? "on" : ""}" data-v="${v}" data-act="injini-filamu">${l}</button>`).join("")}</div>
+          <small class="faint">Makadirio: ~${dkKlipu} dk kwa klipu kwenye T4. Klipu zilizokamilika huhifadhiwa, kwa hiyo ukisimama unaendelea kesho pale ulipoishia. ${S.h.mfumo.gpu ? "" : "⚠️ Inahitaji GPU (Colab)."}</small>` : ""}
+      </div>
       <div class="field">Ubora wa video
         <div class="seg" id="vo-ubora">${[["kawaida", "⚡ Kawaida", "720p · haraka"], ["juu", "✨ Juu", "1080p · mpito laini"], ["sinema", "🎬 Sinema", "1080p · undani + rangi za sinema"]]
           .map(([v, l, d]) => `<button class="${ubora === v ? "on" : ""}" data-v="${v}" data-act="ubora" title="${d}">${l}</button>`).join("")}</div>
@@ -658,10 +679,12 @@ const ACT = {
     $("#t-mistari").lastElementChild.querySelector("textarea").focus();
   },
   "mstari-futa": (el) => el.closest(".line-ed").remove(),
+  "shot-ongeza": () => { $("#t-shots").insertAdjacentHTML("beforeend", shotEd({})); $("#t-shots").lastElementChild.querySelector("textarea").focus(); },
   "hifadhi-tukio": async (el) => {
+    const shots = [...document.querySelectorAll("#t-shots .shot-ed")].map((r) => ({ kitendo: r.querySelector(".sh-kitendo").value, picha: r.querySelector(".sh-picha").value }));
     const mistari = [...document.querySelectorAll("#t-mistari .line-ed")].map((r) => ({ msemaji: r.querySelector("select").value, maneno: r.querySelector("textarea").value }));
     const body = { namba: +el.dataset.id, picha: $("#t-picha").value, wahusika: [...document.querySelectorAll("#t-wahusika .on")].map((b) => b.dataset.v),
-      mwendo: thamani("#t-mwendo") || "auto", mwendo_ai: $("#t-ai").checked, mistari };
+      mwendo: thamani("#t-mwendo") || "auto", mwendo_ai: $("#t-ai").checked, mistari, shots };
     try { await api("/api/hs/tukio", { body }); await pakia(); toast("💾 Tukio limehifadhiwa", "ok"); } catch (e) { kosa(e); }
   },
   "chora-upya-tukio": (el) => anzisha(api("/api/hs/kazi/chora", { body: { aina: "matukio", upya_matukio: pichaT(el.dataset.id) ? [+el.dataset.id] : [] } })),
@@ -690,6 +713,8 @@ const ACT = {
 
   // video
   "vo": () => { S.vo.kichwa = $("#vo-kichwa").checked; S.vo.manukuu = $("#vo-manukuu").checked; },
+  "filamu": async (el) => { try { await api("/api/hs/hadithi/msingi", { body: { mipangilio: { filamu: el.checked } } }); await pakia(); } catch (e) { kosa(e); } },
+  "injini-filamu": async (el) => { try { await api("/api/hs/hadithi/msingi", { body: { mipangilio: { injini_ya_filamu: el.dataset.v } } }); await pakia(); } catch (e) { kosa(e); } },
   "ubora": async (el) => {
     try { await api("/api/hs/hadithi/msingi", { body: { mipangilio: { ubora: el.dataset.v } } }); await pakia(); } catch (e) { kosa(e); }
   },

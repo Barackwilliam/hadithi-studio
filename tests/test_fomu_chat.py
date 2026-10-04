@@ -148,3 +148,15 @@ def test_mwendo_ai_kwenye_fomu():
     assert kutoka_data(d).matukio[n - 1].mwendo_ai is True
     d, n = fomu.weka_tukio(d, n, "children dancing", [], "auto", "Walicheza!")
     assert "mwendo_ai" not in d["matukio"][n - 1]
+
+
+def test_shots_kwenye_fomu_na_hadithi():
+    d = fomu.hadithi_tupu()
+    d, n = fomu.weka_tukio(d, 1, "x", [], "auto", "a", shots=[{"kitendo": "run"}, {"kitendo": "jump", "picha": "close-up"}])
+    h = kutoka_data(d)
+    assert [s.kitendo for s in h.matukio[0].shots] == ["run", "jump"] and h.matukio[0].shots[1].picha == "close-up"
+    d, _ = fomu.weka_tukio(d, 1, "y", [], "auto", "a")  # bila shots: zile za zamani zibaki
+    assert len(d["matukio"][0]["shots"]) == 2
+    d["matukio"][0]["shots"] = [{"picha": "no action"}]
+    with pytest.raises(Exception, match="kitendo"):
+        kutoka_data(d)

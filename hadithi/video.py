@@ -13,7 +13,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
-from .mwendo import KATI, jaza_muda, kadiria_kina, klipu_ya_kina
+from .mwendo import KATI, jaza_muda, kadiria_kina, klipu_ya_kina, unganisha_klipu
 from .story import MIENDO, Hadithi
 from .util import ffmpeg, fonti, muda_wa_sauti, saa_srt
 
@@ -74,6 +74,14 @@ def _ongeza_sauti(video: Path, sauti: Path, muda: float, faili: Path, fps: int, 
         "-vf", f"fps={fps}{vf_f},format=yuv420p", *(["-af", af] if af else []),
         "-t", f"{muda:.3f}", *KATI, *SAUTI_KATI, str(faili),
     )
+
+
+def muda_wa_tukio(t, sauti: dict[tuple[int, int], tuple[Path, float]]) -> float:
+    """Urefu wa sauti ya tukio (sawa na _sauti_ya_tukio) bila kuitengeneza."""
+    if not t.mazungumzo:
+        return max(3.0, t.kimya)
+    sek = [sauti[(t.namba, j)][1] for j in range(len(t.mazungumzo))]
+    return MWANZO + sum(sek) + PENGO * (len(sek) - 1) + MWISHO + t.kimya
 
 
 def _sauti_ya_tukio(mafaili: list[Path], kimya_cha_ziada: float, faili: Path) -> float:
@@ -140,10 +148,12 @@ def _unganisha(klipu: list[Path], mida: list[float], mpito: float, kazi: Path, f
 def tengeneza_video(h: Hadithi, folda: Path, picha: dict[int, Path],
                     sauti: dict[tuple[int, int], tuple[Path, float]], kadi_ya_kichwa: bool = True,
                     klipu_za_ai: dict[int, Path] | None = None, injini_ya_kina: str = "ai",
-                    manukuu_yaonekane: bool | None = None) -> Path:
+                    manukuu_yaonekane: bool | None = None,
+                    klipu_za_filamu: dict[int, list[Path]] | None = None) -> Path:
     """klipu_za_ai: {namba ya tukio: klipu fupi ya mwendo wa AI}. Matukio mengine hupata mwendo wa
     kina (2.5D) ikiwa `kina_2_5d` imewashwa, la sivyo mwendo wa kamera tu."""
     klipu_za_ai = klipu_za_ai or {}
+    klipu_za_filamu = klipu_za_filamu or {}
     if manukuu_yaonekane is None:
         manukuu_yaonekane = h.mipangilio.manukuu
     q = h.ubora
@@ -193,7 +203,11 @@ def tengeneza_video(h: Hadithi, folda: Path, picha: dict[int, Path],
         aina = t.mwendo if t.mwendo != "auto" else MIENDO[idx % 4]
         k = kazi / f"klipu_{t.namba:03d}.mov"
         bila_sauti = kazi / f"mwendo_{t.namba:03d}.mov"
-        if t.namba in klipu_za_ai:
+        if klipu_za_filamu.get(t.namba):
+            print(f"     🎬 filamu: klipu {len(klipu_za_filamu[t.namba])}")
+            unganisha_klipu(klipu_za_filamu[t.namba], muda, bila_sauti, upana, urefu, fps)
+            _ongeza_sauti(bila_sauti, s, muda, k, fps, fifia)
+        elif t.namba in klipu_za_ai:
             print("     🎥 mwendo wa AI")
             jaza_muda(klipu_za_ai[t.namba], muda, bila_sauti, upana, urefu, fps)
             _ongeza_sauti(bila_sauti, s, muda, k, fps, fifia)

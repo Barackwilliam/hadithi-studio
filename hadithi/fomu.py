@@ -123,7 +123,7 @@ def futa_mhusika(data: dict, id_: str) -> dict:
 
 
 def weka_tukio(data: dict, namba: int | None, picha: str, wahusika: list[str], mwendo: str, mazungumzo: str,
-               mwendo_ai: bool = False) -> tuple[dict, int]:
+               mwendo_ai: bool = False, shots: list[dict] | None = None) -> tuple[dict, int]:
     """Ongeza (namba=None) au badilisha tukio. namba inaanzia 1."""
     data = copy.deepcopy(data)
     matukio = data.setdefault("matukio", [])
@@ -134,12 +134,22 @@ def weka_tukio(data: dict, namba: int | None, picha: str, wahusika: list[str], m
         t["mwendo"] = mwendo
     if mwendo_ai:
         t["mwendo_ai"] = True
+    safi = []
+    for sh in shots or []:
+        kitendo = str(sh.get("kitendo") or "").strip()
+        if kitendo:
+            x = {"kitendo": kitendo}
+            if str(sh.get("picha") or "").strip():
+                x["picha"] = str(sh["picha"]).strip()
+            safi.append(x)
+    if safi:
+        t["shots"] = safi
     t["mazungumzo"] = maandishi_kwa_mazungumzo(mazungumzo, data.get("wahusika", {}))
     if namba is None or namba > len(matukio):
         matukio.append(t)
         return data, len(matukio)
     zamani = matukio[namba - 1]
-    for k in ("picha_faili", "kimya"):
+    for k in ("picha_faili", "kimya") + (("shots",) if shots is None else ()):
         if k in zamani:
             t[k] = zamani[k]
     matukio[namba - 1] = t

@@ -5,10 +5,10 @@ import gc
 import random
 from pathlib import Path
 
-from .images import Mchoraji, MchorajiWaMtandao, tengeneza_matukio, tengeneza_wahusika
+from .images import Mchoraji, MchorajiWaMtandao, tengeneza_matukio, tengeneza_picha_za_shots, tengeneza_wahusika
 from .mwendo import MwendoWaAI, alama_ya_klipu, klipu_ya_mfano
 from .story import Hadithi, soma
-from .video import tengeneza_video
+from .video import muda_wa_tukio, tengeneza_video
 from .voices import tengeneza_sauti
 
 
@@ -28,6 +28,7 @@ class Studio:
         self.injini_ya_picha = picha
         self.injini_ya_sauti = sauti
         self._mchoraji: Mchoraji | None = None
+        self._mpiga = None  # modeli ya filamu (LTX/Wan), hupakiwa ikihitajika tu
         self.hadithi: Hadithi = soma(self.faili)
         print(f"📖 '{self.hadithi.kichwa}': matukio {len(self.hadithi.matukio)}, "
               f"wahusika {len(self.hadithi.wahusika)}")
@@ -47,6 +48,7 @@ class Studio:
         if self.injini_ya_picha == "mfano":
             return None
         if self._mchoraji is None:
+            self.funga_filamu()  # GPU moja: modeli ya filamu itoke kwanza
             aina = MchorajiWaMtandao if self.injini_ya_picha == "mtandao" else Mchoraji
             self._mchoraji = aina(self.hadithi)
         self._mchoraji.hadithi = self.hadithi
@@ -78,6 +80,47 @@ class Studio:
             self._mchoraji = None
             gc.collect()
             torch.cuda.empty_cache()
+
+    def funga_filamu(self) -> None:
+        if self._mpiga is not None:
+            self._mpiga.funga()
+            self._mpiga = None
+
+    def picha_za_shots(self, picha: dict[int, Path]) -> dict[tuple[int, int], Path]:
+        wahusika = self.wahusika()
+        print("🎞️  Picha za kuanzia za shots...")
+        return tengeneza_picha_za_shots(self.hadithi, self.folda / "shots", wahusika, picha, self.injini_ya_picha,
+                                        self.mchoraji if any(sh.picha for t in self.hadithi.matukio for sh in t.shots)
+                                        else self._mchoraji)
+
+    def klipu_za_filamu(self, picha: dict[int, Path], sauti) -> dict[int, list[Path]]:
+        """Hali ya Filamu: video halisi kwa kila shot ya kila tukio (huhifadhiwa; huendelea kesho)."""
+        from .filamu import MpigaPicha, mpango, tengeneza_klipu
+
+        h = self.hadithi
+        injini = "mfano" if self.injini_ya_picha == "mfano" else h.mipangilio.injini_ya_filamu
+        if injini != "mfano":
+            try:
+                import torch
+
+                gpu = torch.cuda.is_available()
+            except ImportError:
+                gpu = False
+            if not gpu:
+                print("  ⚠️  Hali ya Filamu inahitaji GPU; natumia mwendo wa kawaida badala yake.")
+                return {}
+        kf = self.picha_za_shots(picha)
+        mida = {t.namba: muda_wa_tukio(t, sauti) for t in h.matukio}
+        orodha = mpango(h, kf, mida, self.folda / "filamu", injini if injini != "mfano" else "ltx")
+        jumla = sum(len(v) for v in orodha.values())
+        mpya = sum(1 for v in orodha.values() for k in v if not k.faili.exists())
+        print(f"🎬 Hali ya Filamu: klipu {jumla} ({mpya} mpya) kwa {h.mipangilio.injini_ya_filamu}")
+        if mpya and injini != "mfano":
+            self.funga_mchoraji()
+            if self._mpiga is None or self._mpiga.injini != injini:
+                self.funga_filamu()
+                self._mpiga = MpigaPicha(injini)
+        return tengeneza_klipu(h, orodha, injini, self._mpiga)
 
     def klipu_za_ai(self, picha: dict[int, Path]) -> dict[int, Path]:
         """Mwendo wa AI kwa matukio yenye `mwendo_ai: true`. Klipu huhifadhiwa; hutengenezwa upya
@@ -136,10 +179,11 @@ class Studio:
 
     def video(self, kadi_ya_kichwa: bool = True, manukuu: bool | None = None) -> Path:
         picha = self.matukio()
-        ai = self.klipu_za_ai(picha)
         print("🎙️  Sauti za wahusika...")
         sauti = tengeneza_sauti(self.hadithi, self.folda / "sauti", self.injini_ya_sauti)
+        filamu = self.klipu_za_filamu(picha, sauti) if self.hadithi.mipangilio.filamu else {}
+        ai = {} if filamu else self.klipu_za_ai(picha)
         print("🎬 Inaunganisha video...")
         return tengeneza_video(self.hadithi, self.folda, picha, sauti, kadi_ya_kichwa, klipu_za_ai=ai,
                                injini_ya_kina="mfano" if self.injini_ya_picha == "mfano" else "ai",
-                               manukuu_yaonekane=manukuu)
+                               manukuu_yaonekane=manukuu, klipu_za_filamu=filamu)

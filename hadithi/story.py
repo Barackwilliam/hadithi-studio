@@ -56,6 +56,14 @@ class Mstari:
 
 
 @dataclass
+class Shot:
+    """Shot moja ya filamu: kitendo (kwa Kiingereza) na, si lazima, picha yake mwenyewe ya kuanzia."""
+    kitendo: str
+    picha: str | None = None  # maelezo ya picha ya shot (mf. close-up); bila hii hutumia picha ya tukio
+    wahusika: list[str] | None = None
+
+
+@dataclass
 class Tukio:
     namba: int
     picha: str  # maelezo ya picha ya tukio
@@ -65,6 +73,7 @@ class Tukio:
     picha_faili: str | None = None  # tumia picha yako badala ya AI
     kimya: float = 0.0  # sekunde za ziada bila maneno
     mwendo_ai: bool = False  # wahusika wasogee kwa AI (image-to-video, inahitaji GPU)
+    shots: list[Shot] = field(default_factory=list)  # Hali ya Filamu: shots za tukio
 
 
 @dataclass
@@ -81,6 +90,8 @@ class Mipangilio:
     kina_2_5d: bool = True  # matukio yasiyo na mwendo wa AI yapate mwendo wa kina (2.5D)
     nguvu_ya_mwendo: int = 127  # mwendo wa AI: 60 = kidogo, 127 = wastani, 200 = mwingi
     modeli_ya_mwendo: str = "stabilityai/stable-video-diffusion-img2vid-xt"
+    filamu: bool = False  # Hali ya Filamu: kila tukio ni video halisi (shots)
+    injini_ya_filamu: str = "ltx"  # ltx (haraka) | wan (ubora wa juu)
 
 
 @dataclass
@@ -110,6 +121,21 @@ def _sauti(jina: str | None, chaguo_msingi: str) -> str:
     if not jina:
         return chaguo_msingi
     return SAUTI.get(str(jina).lower(), str(jina))
+
+
+def _soma_shots(shots, i: int, wahusika: dict) -> list[Shot]:
+    matokeo = []
+    for j, sh in enumerate(shots or [], 1):
+        if isinstance(sh, str):
+            sh = {"kitendo": sh}
+        if not isinstance(sh, dict) or not str(sh.get("kitendo", "")).strip():
+            raise KosaLaHadithi(f"Tukio la {i}, shot {j}: inahitaji 'kitendo'.")
+        w = [str(x) for x in sh.get("wahusika") or []] or None
+        for x in w or []:
+            if x not in wahusika:
+                raise KosaLaHadithi(f"Tukio la {i}, shot {j}: mhusika '{x}' hajaelezwa kwenye 'wahusika'.")
+        matokeo.append(Shot(str(sh["kitendo"]).strip(), (str(sh["picha"]).strip() or None) if sh.get("picha") else None, w))
+    return matokeo
 
 
 def soma(njia: str | Path) -> Hadithi:
@@ -181,6 +207,7 @@ def kutoka_data(data: dict, folda: str | Path = ".") -> Hadithi:
                 picha_faili=t.get("picha_faili"),
                 kimya=float(t.get("kimya", 0)),
                 mwendo_ai=bool(t.get("mwendo_ai", False)),
+                shots=_soma_shots(t.get("shots"), i, wahusika),
             )
         )
     if not matukio:
@@ -189,6 +216,8 @@ def kutoka_data(data: dict, folda: str | Path = ".") -> Hadithi:
     mp = data.get("mipangilio") or {}
     msingi = Mipangilio()
     mipangilio = Mipangilio(**{k: mp.get(k, getattr(msingi, k)) for k in msingi.__dataclass_fields__})
+    if mipangilio.injini_ya_filamu not in ("ltx", "wan"):
+        raise KosaLaHadithi("injini_ya_filamu lazima iwe 'ltx' au 'wan'.")
     if mipangilio.ubora not in UBORA:
         raise KosaLaHadithi(f"ubora '{mipangilio.ubora}' haujulikani. Chagua: {', '.join(UBORA)}")
 

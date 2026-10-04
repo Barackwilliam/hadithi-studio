@@ -79,6 +79,34 @@ Hii hufanyika mara moja tu, kupitia notebook ya Colab. Haihitaji GitHub Actions 
 
 ---
 
+## 🎞️ Hali ya Filamu (video halisi)
+
+Washa **🎬 Hali ya Filamu** kwenye tabo ya Video. Kila tukio halitakuwa tena picha inayosogea, bali **video halisi**: wahusika wanafanya vitendo unavyoandika.
+
+- Kila tukio lina **shots** 2 hadi 3, kama filamu. Kila shot ina `kitendo` (kwa Kiingereza: nani anafanya nini, na mwendo wa kamera) na, si lazima, `picha` yake (mf. close-up). AI ya Chat huziandika yenyewe.
+- Shots zisipotosha muda wa sauti, shot ya mwisho **huendelezwa** kutoka fremu yake ya mwisho.
+- Injini mbili: **⚡ LTX-Video** (haraka) na **💎 Wan 2.2 5B** (ubora wa juu, polepole sana kwenye T4).
+- Klipu zilizokamilika huhifadhiwa kwenye Drive. Ukisimama au Colab ikizimika, unaendelea pale ulipoishia.
+- Anza na **🧪 Jaribio la Hali ya Filamu** kwenye notebook (shot moja), ili uone ubora na muda halisi kwenye GPU yako.
+
+```yaml
+matukio:
+  - picha: "a boy and a girl on a dirt path toward an old stone well"
+    wahusika: [amani, neema]
+    shots:
+      - kitendo: "the boy and girl run along the path toward the well, camera tracking"
+      - kitendo: "the girl stops and laughs"
+        picha: "close-up of a laughing girl"
+        wahusika: [neema]
+mipangilio:
+  filamu: true
+  injini_ya_filamu: ltx      # ltx | wan
+```
+
+> ⚠️ Kwenye T4 ya bure, kila klipu ya sekunde ~4 inaweza kuchukua dakika 3 hadi 15. Episode ya dakika 2 inaweza kuchukua saa 1 hadi 3, na kuendelea siku nyingine. Midomo bado haifuati maneno.
+
+---
+
 ## 🎬 Ubora wa video
 
 Chagua ubora kwenye tabo ya **🎬 Video** (au `mipangilio: ubora:`):

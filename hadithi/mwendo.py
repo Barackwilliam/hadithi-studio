@@ -209,3 +209,16 @@ def jaza_muda(klipu: Path, muda: float, faili: Path, upana: int, urefu: int, fps
            "-map", "[v]", *KATI, str(boom))
     ffmpeg("-stream_loop", "-1", "-i", str(boom), "-t", f"{muda:.3f}", *KATI, str(faili))
     boom.unlink(missing_ok=True)
+
+
+def unganisha_klipu(klipu: list[Path], muda: float, faili: Path, upana: int, urefu: int, fps: int = FPS) -> None:
+    """Hali ya Filamu: unganisha klipu za shots za tukio, zipanue hadi ukubwa wa video, na uzijaze
+    (au uzikate) kwa muda wa sauti ya tukio."""
+    ingizo, vipande = [], []
+    for i, k in enumerate(klipu):
+        ingizo += ["-i", str(k)]
+        vipande.append(f"[{i}:v]scale={upana}:{urefu}:force_original_aspect_ratio=increase:flags=lanczos,"
+                       f"crop={upana}:{urefu},unsharp=5:5:0.35,fps={fps},setsar=1,format=yuv420p[v{i}]")
+    vipande.append("".join(f"[v{i}]" for i in range(len(klipu))) + f"concat=n={len(klipu)}:v=1:a=0[c]")
+    vipande.append(f"[c]tpad=stop_mode=clone:stop_duration={muda:.3f}[v]")
+    ffmpeg(*ingizo, "-filter_complex", ";".join(vipande), "-map", "[v]", "-t", f"{muda:.3f}", *KATI, str(faili))

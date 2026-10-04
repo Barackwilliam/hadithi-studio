@@ -525,7 +525,8 @@ def tengeneza_router(kiini: Kiini) -> APIRouter:
         if not (d.get("picha") or "").strip():
             raise HTTPException(400, "Eleza picha ya tukio.")
         data, n = fomu.weka_tukio(data, int(n) if n else None, d["picha"], d.get("wahusika") or [],
-                                  d.get("mwendo") or "auto", mazungumzo, bool(d.get("mwendo_ai")))
+                                  d.get("mwendo") or "auto", mazungumzo, bool(d.get("mwendo_ai")),
+                                  d.get("shots"))
         kiini.hifadhi(data)
         return ok(namba=n)
 
