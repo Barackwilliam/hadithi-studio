@@ -34,7 +34,11 @@ def sajili(space_url: str, url_ya_studio: str, siri: str) -> bool:
         with urllib.request.urlopen(ombi, timeout=20) as r:
             return json.loads(r.read()).get("sawa") is True
     except Exception as e:  # noqa: BLE001
-        print(f"⚠️ Kujisajili kwenye ukurasa wa kudumu kumeshindikana: {e}")
+        sababu = {404: "ukurasa wa kudumu haupo bado, au ni toleo la zamani",
+                  403: "APP_PASSWORD ya Colab hailingani na ya Space"}.get(getattr(e, "code", None), str(e))
+        print(f"ℹ️ Ukurasa wa kudumu ({space_url}) haujaunganishwa: {sababu}. "
+              "Endesha sehemu ya 🌐 (Weka / sasisha ukurasa wa kudumu), kisha uanzishe Hatua ya 3 tena. "
+              "Studio ya GPU hapa juu inafanya kazi kama kawaida.")
         return False
 
 
@@ -46,6 +50,12 @@ def anza_kujisajili(space_url: str, url_ya_studio: str, siri: str, kila: int = 3
     def zunguka():
         while True:
             time.sleep(kila)
-            sajili(space_url, url_ya_studio, siri)
+            try:
+                ombi = urllib.request.Request(
+                    f"{space_url}/api/hs/injini/sajili", data=json.dumps({"url": url_ya_studio, "siri": siri}).encode(),
+                    headers={"Content-Type": "application/json"}, method="POST")
+                urllib.request.urlopen(ombi, timeout=20).close()
+            except Exception:  # noqa: BLE001  (kimya: tayari tumeshaeleza mara ya kwanza)
+                pass
 
     threading.Thread(target=zunguka, daemon=True).start()
