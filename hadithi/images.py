@@ -80,6 +80,7 @@ class Mchoraji:
         pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config, timestep_spacing="trailing")
         pipe.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name="ip-adapter_sdxl.bin")
         pipe.to("cuda")
+        pipe.enable_vae_tiling()  # picha kubwa (ubora wa sinema) bila kujaza GPU
         self.pipe = pipe
         self.torch = torch
         self.hatua = hatua
@@ -100,6 +101,13 @@ class Mchoraji:
             prompt=maelezo, width=upana, height=urefu, num_inference_steps=self.hatua,
             guidance_scale=0.0, generator=gen, ip_adapter_image=ip,
         ).images[0]
+
+    def boresha(self, picha: Image.Image, maelezo: str, mbegu: int, kumbukumbu: list[Image.Image] | None = None,
+                nguvu: float = 0.5) -> Image.Image:
+        """"Hires fix": panua picha mara 1.5 kisha ichore upya kidogo ili ipate undani zaidi."""
+        w, h = picha.size
+        kubwa = picha.resize((round(w * 1.5 / 8) * 8, round(h * 1.5 / 8) * 8), Image.LANCZOS)
+        return self.hariri(kubwa, maelezo, mbegu, 0.3, kumbukumbu, nguvu)
 
     def hariri(self, picha: Image.Image, maelezo: str, mbegu: int, nguvu_ya_mabadiliko: float = 0.55,
                kumbukumbu: list[Image.Image] | None = None, nguvu: float = 0.5) -> Image.Image:
@@ -255,7 +263,9 @@ def tengeneza_matukio(h: Hadithi, folda: Path, picha_za_wahusika: dict[str, Path
             continue
         maelezo = _maelezo_ya_tukio(h, t)
         kumbukumbu_za = [w for w in t.wahusika if w in picha_za_wahusika]
+        hires = bool(h.ubora["hires"]) and injini == "sdxl"
         alama = _alama(maelezo, upana, urefu, injini, h.mipangilio.modeli, h.mipangilio.nguvu_ya_mhusika,
+                       "hires" if hires else "",
                        *(f"{w}:{picha_za_wahusika[w].stat().st_mtime_ns}" for w in kumbukumbu_za))
         if t.namba in mbegu_maalum or _inahitaji_kuchorwa(faili, alama):
             mbegu = mbegu_maalum.get(t.namba, h.mipangilio.mbegu + t.namba)
@@ -265,6 +275,13 @@ def tengeneza_matukio(h: Hadithi, folda: Path, picha_za_wahusika: dict[str, Path
             else:
                 kumbukumbu = [Image.open(picha_za_wahusika[w]).convert("RGB") for w in kumbukumbu_za]
                 img = mchoraji.chora(maelezo, upana, urefu, mbegu, kumbukumbu, h.mipangilio.nguvu_ya_mhusika)
+                if hires and hasattr(mchoraji, "boresha"):
+                    print("     ✨ inaongeza undani (hires)")
+                    try:
+                        img = mchoraji.boresha(img, maelezo, mbegu, kumbukumbu, h.mipangilio.nguvu_ya_mhusika)
+                    except Exception as e:  # noqa: BLE001  (mf. GPU imejaa): baki na picha ya kawaida
+                        print(f"     ⚠️  hires imeshindikana ({type(e).__name__}); natumia picha ya kawaida")
+                        mchoraji.torch.cuda.empty_cache()
             _hifadhi(img, faili, alama, mbegu)
         matokeo[t.namba] = faili
     return matokeo

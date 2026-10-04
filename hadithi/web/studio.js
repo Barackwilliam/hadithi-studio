@@ -10,6 +10,8 @@ const S = {
   drawer: null,            // {aina: "mhusika"|"tukio", id}
   chatBusy: false,
   vo: { kichwa: true, manukuu: true },
+  injini: null,            // {url, hai}: Colab (GPU) iliyojisajili kwenye ukurasa huu wa kudumu
+  injiniSaa: 0,
 };
 
 const NAV = [
@@ -77,6 +79,29 @@ async function pakia() {
   if (S.drawer) fungua_drawer(S.drawer.aina, S.drawer.id, true);
   const k = S.h.kazi?.[0];
   if (k && !S.kazi) fuatilia(k);
+  angaliaInjini();
+}
+
+/* Ukurasa wa kudumu (bila GPU): je, Colab iko hewani? */
+async function angaliaInjini() {
+  if (S.h.mfumo.gpu || Date.now() - S.injiniSaa < 60000) return;
+  S.injiniSaa = Date.now();
+  try { S.injini = await api("/api/hs/injini"); } catch { S.injini = null; }
+  if (S.injini?.hai && localStorage.getItem("hs-elekeza") === "1") { location.href = `${S.injini.url}/studio`; return; }
+  shell();
+  const b = $("#bango-injini");
+  if (b) b.outerHTML = bangoInjini();
+  else if (S.injini?.hai) $("#main").insertAdjacentHTML("afterbegin", bangoInjini());
+}
+
+function bangoInjini() {
+  if (!S.injini?.hai) return '<div id="bango-injini"></div>';
+  return `<div id="bango-injini" class="card pad" style="margin-bottom:16px;border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))">
+    <b>⚡ GPU ya Colab iko hewani sasa.</b> Kwa ubora wa sinema, picha bora na 🎥 mwendo wa AI, tumia Studio ya GPU. Hadithi zake ziko kwenye Google Drive yako.
+    <div class="actions" style="margin-top:10px">
+      <a class="btn primary" href="${esc(S.injini.url)}/studio">Fungua Studio ya GPU →</a>
+      <label class="switch"><input type="checkbox" data-act="elekeza" ${localStorage.getItem("hs-elekeza") === "1" ? "checked" : ""}><span class="track"></span><span class="lbl"><small>Nipeleke huko moja kwa moja kila GPU ikiwa hewani</small></span></label>
+    </div></div>`;
 }
 
 function shell() {
@@ -85,6 +110,10 @@ function shell() {
   const gpu = $("#pill-gpu"), ai = $("#pill-ai");
   gpu.className = `pill gpu ${S.h.mfumo.gpu ? "ok" : "warn"}`;
   gpu.lastChild.textContent = S.h.mfumo.gpu ? "GPU tayari" : (S.h.mfumo.picha === "mtandao" ? "Picha za mtandao" : "Hakuna GPU");
+  if (!S.h.mfumo.gpu && S.injini?.hai) {
+    gpu.className = "pill gpu ok"; gpu.lastChild.textContent = "⚡ GPU hewani";
+    gpu.style.cursor = "pointer"; gpu.onclick = () => { location.href = `${S.injini.url}/studio`; };
+  }
   ai.className = `pill ${S.h.mfumo.gemini ? "ok" : "warn"}`;
   ai.lastChild.textContent = S.h.mfumo.gemini ? "Gemini" : "Gemini: weka key";
   const imekamilika = {
@@ -119,7 +148,7 @@ async function enda(view) {
 async function render() {
   const main = $("#main");
   const V = { miradi: vMiradi, andika: vAndika, wahusika: vWahusika, storyboard: vStoryboard, video: vVideo, mipangilio: vMipangilio };
-  main.innerHTML = await (V[S.view] || vAndika)();
+  main.innerHTML = (S.view !== "miradi" && S.injini?.hai ? bangoInjini() : "") + await (V[S.view] || vAndika)();
   if (S.view === "andika") { const m = $("#msgs"); if (m) m.scrollTop = m.scrollHeight; }
 }
 
@@ -133,6 +162,7 @@ async function vMiradi() {
     <div class="actions">
       <button class="btn primary lg" data-act="mradi-mpya">✨ Anza hadithi mpya</button>
       <button class="btn lg" data-act="mradi-mfano">📖 Jaribu hadithi ya mfano</button>
+      <button class="btn lg ghost" data-act="mradi-pakia">📥 Fungua faili la hadithi</button>
     </div>
   </section>
   <div class="view-head"><div><h1>Hadithi zako</h1><p>Chagua hadithi ili kuendelea pale ulipoishia.</p></div></div>
@@ -394,7 +424,8 @@ async function vVideo() {
   const ai = t.filter((x) => x.mwendo_ai).length;
   const hakuna = t.filter((_, i) => !pichaT(i + 1)).length;
   const mp = H().mipangilio || {};
-  const muda = hakuna * 8 + ai * 270 + t.length * 12 + 20;
+  const ubora = mp.ubora || "juu";
+  const muda = hakuna * (ubora === "sinema" ? 20 : 8) + ai * (ubora === "sinema" ? 330 : 270) + t.length * ({ kawaida: 10, juu: 25, sinema: 35 }[ubora]) + 20;
   const v = S.h.video[0];
   return `
   <div class="view-head"><div><h1>Video</h1><p>Unganisha picha, mwendo, sauti, manukuu na muziki kuwa video moja.</p></div>
@@ -414,6 +445,11 @@ async function vVideo() {
           <span class="pill">🎞️ ${t.length} matukio</span><span class="pill">🎥 ${ai} AI</span>
           ${hakuna ? `<span class="pill warn"><span class="dot"></span>${hakuna} picha mpya</span>` : ""}
           <span class="pill">⏱️ ~${dakika(muda)}</span></div></div>
+      <div class="field">Ubora wa video
+        <div class="seg" id="vo-ubora">${[["kawaida", "⚡ Kawaida", "720p · haraka"], ["juu", "✨ Juu", "1080p · mpito laini"], ["sinema", "🎬 Sinema", "1080p · undani + rangi za sinema"]]
+          .map(([v, l, d]) => `<button class="${ubora === v ? "on" : ""}" data-v="${v}" data-act="ubora" title="${d}">${l}</button>`).join("")}</div>
+        <span class="hint">${{ kawaida: "720p, fps 25. Haraka zaidi.", juu: "1080p Full HD, fps 30, mpito laini, sauti iliyosawazishwa, muziki hushuka wahusika wakiongea.",
+          sinema: "Kila kitu cha 'Juu' + picha zenye undani zaidi (hires), mwendo wa AI wenye hatua zaidi, rangi za sinema na chembechembe za filamu. Polepole zaidi." }[ubora]}</span></div>
       <label class="switch"><input type="checkbox" id="vo-kichwa" ${S.vo.kichwa ? "checked" : ""} data-act="vo"><span class="track"></span><span class="lbl"><b>Kadi ya kichwa</b><small>Jina la hadithi mwanzoni</small></span></label>
       <label class="switch"><input type="checkbox" id="vo-manukuu" ${S.vo.manukuu ? "checked" : ""} data-act="vo"><span class="track"></span><span class="lbl"><b>Manukuu</b><small>Maneno chini ya video</small></span></label>
       <label class="switch"><input type="checkbox" id="vo-kina" ${mp.kina_2_5d !== false ? "checked" : ""} data-act="mp-kina"><span class="track"></span><span class="lbl"><b>Mwendo wa kina (2.5D)</b><small>Picha zisizo na AI zipate kina</small></span></label>
@@ -562,6 +598,13 @@ const ACT = {
     if (!confirm("Futa hadithi hii pamoja na picha na video zake zote? Haiwezi kurudishwa.")) return;
     try { await api("/api/hs/mradi/futa", { body: { jina: el.dataset.jina } }); await pakia(); enda("miradi"); } catch (e) { kosa(e); }
   },
+  "mradi-pakia": async () => {
+    const f = await chaguaFaili(".yaml,.yml,.txt");
+    if (!f) return;
+    const form = new FormData(); form.append("faili", f);
+    try { await api("/api/hs/mradi/pakia", { form }); await pakia(); enda("storyboard"); toast("📥 Hadithi imefunguliwa", "ok"); } catch (e) { kosa(e); }
+  },
+  "elekeza": (el) => { localStorage.setItem("hs-elekeza", el.checked ? "1" : "0"); if (el.checked && S.injini?.hai) location.href = `${S.injini.url}/studio`; },
   "mradi-mfano": async () => { try { await api("/api/hs/mradi/mfano", { body: {} }); await pakia(); enda("storyboard"); } catch (e) { kosa(e); } },
   "episode": async () => {
     if (!confirm("Unda episode inayofuata? Wahusika, sura zao na sauti zao vitabaki vile vile.")) return;
@@ -647,6 +690,9 @@ const ACT = {
 
   // video
   "vo": () => { S.vo.kichwa = $("#vo-kichwa").checked; S.vo.manukuu = $("#vo-manukuu").checked; },
+  "ubora": async (el) => {
+    try { await api("/api/hs/hadithi/msingi", { body: { mipangilio: { ubora: el.dataset.v } } }); await pakia(); } catch (e) { kosa(e); }
+  },
   "mp-kina": async (el) => { await api("/api/hs/hadithi/msingi", { body: { mipangilio: { kina_2_5d: el.checked } } }); },
   "video": () => anzisha(api("/api/hs/kazi/video", { body: { kichwa: S.vo.kichwa, manukuu: S.vo.manukuu } })),
   "muziki": async () => {

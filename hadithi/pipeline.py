@@ -91,8 +91,8 @@ class Studio:
         folda.mkdir(parents=True, exist_ok=True)
         matokeo, kazi = {}, []
         for t in matukio:
-            alama = alama_ya_klipu(picha[t.namba], mp.nguvu_ya_mwendo, mp.modeli_ya_mwendo, upana, urefu,
-                                   self.injini_ya_picha)
+            alama = alama_ya_klipu(picha[t.namba], mp.nguvu_ya_mwendo, mp.modeli_ya_mwendo, self.hadithi.ukubwa,
+                                   self.hadithi.ubora["svd_hatua"], self.injini_ya_picha)
             f = folda / f"tukio{t.namba:03d}_{alama}.mp4"
             if f.exists():
                 matokeo[t.namba] = f
@@ -123,7 +123,8 @@ class Studio:
             for i, (t, f) in enumerate(kazi, 1):
                 print(f"  🎥 Mwendo wa AI {i}/{len(kazi)}: tukio {t.namba} (dakika 3-6)...")
                 try:
-                    mwendo.tengeneza(picha[t.namba], f, upana, urefu, mp.mbegu + t.namba, mp.nguvu_ya_mwendo)
+                    mwendo.tengeneza(picha[t.namba], f, upana, urefu, mp.mbegu + t.namba, mp.nguvu_ya_mwendo,
+                                     self.hadithi.ubora["svd_hatua"])
                     matokeo[t.namba] = f
                 except Exception as e:  # noqa: BLE001
                     f.unlink(missing_ok=True)

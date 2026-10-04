@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import queue
 import re
 import shutil
@@ -14,6 +15,7 @@ import sys
 import threading
 import time
 import traceback
+import urllib.request
 import uuid
 from pathlib import Path
 
@@ -97,6 +99,15 @@ class Kiini:
         self._foleni: queue.Queue = queue.Queue()
         threading.Thread(target=self._mfanyakazi, daemon=True).start()
         self.mradi = slug(mradi)
+        # injini ya GPU (Colab) iliyojisajili kwenye ukurasa huu wa kudumu
+        self._injini_faili = self.mzizi / ".injini.json"
+        self.injini_url: str | None = None
+        if self._injini_faili.exists():
+            try:
+                self.injini_url = json.loads(self._injini_faili.read_text()).get("url")
+            except ValueError:
+                pass
+        self._injini_hali: tuple[float, bool] = (0.0, False)
         if not (self.folda / "hadithi.yaml").exists():
             self._unda_mradi(self.mradi)
 
@@ -207,6 +218,26 @@ class Kiini:
             return bool(torch.cuda.is_available())
         except Exception:  # noqa: BLE001
             return False
+
+    # ------------------------------------------------------------ injini ya GPU (Colab)
+    def sajili_injini(self, url: str) -> None:
+        self.injini_url = url.rstrip("/")
+        self._injini_hali = (time.time(), True)
+        self._injini_faili.write_text(json.dumps({"url": self.injini_url, "saa": time.time()}))
+
+    def injini(self) -> dict:
+        """Je, Colab (GPU) iko hewani sasa hivi? Jibu huhifadhiwa kwa sekunde 20."""
+        if not self.injini_url:
+            return {"url": None, "hai": False}
+        saa, hai = self._injini_hali
+        if time.time() - saa > 20:
+            try:
+                with urllib.request.urlopen(f"{self.injini_url}/api/hs/ping", timeout=5) as r:
+                    hai = json.loads(r.read()).get("sawa") is True
+            except Exception:  # noqa: BLE001
+                hai = False
+            self._injini_hali = (time.time(), hai)
+        return {"url": self.injini_url, "hai": hai}
 
     # ------------------------------------------------------------ series
     def _mfululizo(self) -> dict | None:
@@ -399,6 +430,22 @@ def tengeneza_router(kiini: Kiini) -> APIRouter:
     def mradi_chagua(d: dict):
         kiini.chagua(d.get("jina", ""))
         return ok(mradi=kiini.mradi)
+
+    @r.post("/api/hs/mradi/pakia")
+    async def mradi_pakia(faili: UploadFile = File(...)):
+        try:
+            data = fomu.kutoka_yaml((await faili.read()).decode("utf-8"))
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(400, f"Faili si hadithi sahihi (.yaml): {e}") from e
+        kosa = _hakiki(data)
+        if kosa:
+            raise HTTPException(400, kosa)
+        kiini.mradi = kiini._unda_mradi(Path(faili.filename or "hadithi").stem or data.get("kichwa", "hadithi"), data)
+        return ok(mradi=kiini.mradi)
+
+    @r.get("/api/hs/injini")
+    def injini():
+        return kiini.injini()
 
     @r.post("/api/hs/mradi/mfano")
     def mradi_mfano():
@@ -683,11 +730,34 @@ def tengeneza_router(kiini: Kiini) -> APIRouter:
     return r
 
 
+def tengeneza_router_wazi(kiini: Kiini) -> APIRouter:
+    """Njia zisizohitaji kuingia: ping (kwa ukaguzi wa uhai) na usajili wa injini (unalindwa kwa siri)."""
+    r = APIRouter()
+
+    @r.get("/api/hs/ping")
+    def ping():
+        return {"sawa": True, "gpu": kiini._ina_gpu(), "picha": kiini.injini_ya_picha}
+
+    @r.post("/api/hs/injini/sajili")
+    def sajili(d: dict):
+        siri = os.environ.get("APP_PASSWORD", "")
+        if not siri or d.get("siri") != siri:
+            raise HTTPException(403, "Siri si sahihi.")
+        url = str(d.get("url") or "")
+        if not re.match(r"^https://[\w.-]+(:\d+)?(/.*)?$", url):
+            raise HTTPException(400, "Anwani si sahihi.")
+        kiini.sajili_injini(url)
+        print(f"⚡ Injini ya GPU imejisajili: {url}")
+        return {"sawa": True}
+
+    return r
+
+
 def weka_kwenye(app, kiini: Kiini) -> None:
     """Ongeza njia za Studio Pro mbele ya njia za Gradio kwenye app inayoendeshwa."""
-    r = tengeneza_router(kiini)
     idadi = len(app.router.routes)
-    app.include_router(r)
+    app.include_router(tengeneza_router_wazi(kiini))
+    app.include_router(tengeneza_router(kiini))
     mpya = app.router.routes[idadi:]
     del app.router.routes[idadi:]
     app.router.routes[:0] = mpya

@@ -21,6 +21,14 @@ UKUBWA = {
     "1:1": (1024, 1024, 1080, 1080),  # Instagram
 }
 
+# Ubora wa video: kawaida (haraka) -> juu (1080p) -> sinema (1080p + picha zenye undani + rangi za sinema)
+UBORA = {
+    "kawaida": {"fps": 25, "crf": 20, "preset": "medium", "mpito": 0.0, "svd_hatua": 20, "hires": False, "rangi": False, "hd": False},
+    "juu": {"fps": 30, "crf": 18, "preset": "slow", "mpito": 0.6, "svd_hatua": 25, "hires": False, "rangi": False, "hd": True},
+    "sinema": {"fps": 30, "crf": 17, "preset": "slow", "mpito": 0.8, "svd_hatua": 30, "hires": True, "rangi": True, "hd": True},
+}
+VIDEO_HD = {"16:9": (1920, 1080), "9:16": (1080, 1920), "1:1": (1080, 1080)}
+
 MIENDO = ("karibia", "mbali", "kulia", "kushoto", "tuli")
 
 MSIMULIZI = "msimulizi"
@@ -68,6 +76,7 @@ class Mipangilio:
     onyesha_jina: bool = False  # onyesha jina la msemaji kwenye manukuu
     muziki: str | None = None
     sauti_ya_muziki: float = 0.12
+    ubora: str = "juu"  # kawaida | juu | sinema
     manukuu: bool = True  # onyesha maneno (subtitles) kwenye video
     kina_2_5d: bool = True  # matukio yasiyo na mwendo wa AI yapate mwendo wa kina (2.5D)
     nguvu_ya_mwendo: int = 127  # mwendo wa AI: 60 = kidogo, 127 = wastani, 200 = mwingi
@@ -89,8 +98,12 @@ class Hadithi:
         return UKUBWA[self.ukubwa][:2]
 
     @property
+    def ubora(self) -> dict:
+        return UBORA.get(self.mipangilio.ubora, UBORA["juu"])
+
+    @property
     def video_size(self) -> tuple[int, int]:
-        return UKUBWA[self.ukubwa][2:]
+        return VIDEO_HD[self.ukubwa] if self.ubora["hd"] else UKUBWA[self.ukubwa][2:]
 
 
 def _sauti(jina: str | None, chaguo_msingi: str) -> str:
@@ -176,6 +189,8 @@ def kutoka_data(data: dict, folda: str | Path = ".") -> Hadithi:
     mp = data.get("mipangilio") or {}
     msingi = Mipangilio()
     mipangilio = Mipangilio(**{k: mp.get(k, getattr(msingi, k)) for k in msingi.__dataclass_fields__})
+    if mipangilio.ubora not in UBORA:
+        raise KosaLaHadithi(f"ubora '{mipangilio.ubora}' haujulikani. Chagua: {', '.join(UBORA)}")
 
     return Hadithi(
         kichwa=str(data.get("kichwa", "Hadithi Yangu")),

@@ -490,11 +490,14 @@ def _kiungo(url: str) -> None:
 
 
 def zindua(folda: str | Path = "matokeo", api_key: str | None = None, picha: str = "sdxl", sauti: str = "edge",
-           share: bool = True, ukurasa: str = "studio", **kwargs):
+           share: bool = True, ukurasa: str = "studio", space: str | None = None, siri: str | None = None,
+           **kwargs):
     """Fungua ukurasa. Kwenye Colab, link ya umma (…gradio.live) itaonekana; ifungue hata kwenye simu.
 
     ukurasa="studio": ukurasa wa kitaalamu (/studio) wenye miradi mingi, storyboard na kuhariri picha.
     ukurasa="rahisi": ukurasa wa awali wa Gradio.
+    space, siri: ukipewa (mf. "jina/hadithi-studio" na APP_PASSWORD), Colab hujisajili kwenye ukurasa wa
+    kudumu ili uelekeze kwenye GPU hii.
     """
     if ukurasa != "studio":
         prog = Programu(folda, api_key, picha, sauti)
@@ -519,6 +522,10 @@ def zindua(folda: str | Path = "matokeo", api_key: str | None = None, picha: str
                                       allowed_paths=[str(folda.parent.resolve())], **kwargs)
     weka_kwenye(kizinduzi.app, kiini)
     _kiungo(f"{(umma or local).rstrip('/')}/studio")
+    if space and siri and umma:
+        from .kiungo import anwani_ya_space, anza_kujisajili
+
+        anza_kujisajili(anwani_ya_space(space, os.environ.get("HF_TOKEN")), umma.rstrip("/"), siri)
     if kuzuia:
         kizinduzi.block_thread()
     return kiini

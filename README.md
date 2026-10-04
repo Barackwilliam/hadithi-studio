@@ -79,6 +79,26 @@ Hii hufanyika mara moja tu, kupitia notebook ya Colab. Haihitaji GitHub Actions 
 
 ---
 
+## 🎬 Ubora wa video
+
+Chagua ubora kwenye tabo ya **🎬 Video** (au `mipangilio: ubora:`):
+
+| Ubora | Inachofanya | Muda |
+|---|---|---|
+| ⚡ **Kawaida** | 720p, fps 25, mfifio kati ya matukio | Haraka |
+| ✨ **Juu** (chaguo-msingi) | **1080p Full HD**, fps 30, **mpito laini** (crossfade), sauti iliyosawazishwa (-16 LUFS), muziki hushuka wahusika wakiongea | Wastani |
+| 🎬 **Sinema** | Kila kitu cha "Juu" + **picha zenye undani zaidi** (hires fix: kila picha huchorwa upya kwa ukubwa mara 1.5), mwendo wa AI wenye hatua zaidi, **rangi za sinema**, vignette na chembechembe za filamu | Polepole zaidi |
+
+> Ubora wa juu kabisa unapatikana kwenye **Colab (GPU)**. Ukurasa wa kudumu (bila GPU) unafanya "Juu", lakini bila hires wala mwendo wa AI.
+
+## ⚡ Link moja: ukurasa wa kudumu + GPU ya Colab
+
+Ukiweka ukurasa wa kudumu (Hugging Face) na `HF_TOKEN` + `APP_PASSWORD` kwenye Secrets za Colab, kila unapowasha Colab (Hatua ya 3) hujisajili yenyewe kwenye ukurasa wa kudumu. Ukifungua link yako ya kudumu utaona **⚡ GPU hewani** na kitufe cha **Fungua Studio ya GPU →**. Ukiwasha *"Nipeleke huko moja kwa moja"*, link ya kudumu itakupeleka kwenye GPU kila inapokuwa hewani. Colab ikizimwa, ukurasa wa kudumu unaendelea kufanya kazi kwa njia ya bure.
+
+Kuhamisha hadithi kati ya ukurasa wa kudumu na Colab: **📤 Pakua hadithi (.yaml)** upande mmoja, kisha **📥 Fungua faili la hadithi** upande mwingine.
+
+---
+
 ## 🎥 Mwendo kwenye video
 
 Kila tukio hupata mojawapo ya aina hizi za mwendo:
@@ -95,6 +115,7 @@ Tumia Mwendo wa AI kwa matukio 2 hadi 3 yenye vitendo vikubwa. Mwelekeo wa kamer
 Mipangilio inayohusiana:
 ```yaml
 mipangilio:
+  ubora: juu             # kawaida | juu | sinema
   manukuu: true          # false = video bila maneno
   kina_2_5d: true        # false = mwendo wa kamera wa kawaida tu
   nguvu_ya_mwendo: 127   # mwendo wa AI: 60 = kidogo, 127 = wastani, 200 = mwingi

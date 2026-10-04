@@ -101,3 +101,36 @@ def test_ulinzi_wa_kuingia(tmp_path):
     assert c.get("/studio", follow_redirects=False).status_code == 307
     c.cookies.set("access-token-abc", "tok")
     assert c.get("/api/hs/hali").status_code == 200
+
+
+def test_injini_ya_gpu(tmp_path, monkeypatch):
+    import io
+    import json
+    kiini = seva.Kiini(tmp_path, "x", picha="mtandao", sauti="kimya")
+    app = FastAPI()
+    seva.weka_kwenye(app, kiini)
+    c = TestClient(app)
+    assert c.get("/api/hs/ping").json()["sawa"] is True
+    assert c.get("/api/hs/injini").json() == {"url": None, "hai": False}
+    monkeypatch.delenv("APP_PASSWORD", raising=False)
+    assert c.post("/api/hs/injini/sajili", json={"url": "https://a.gradio.live", "siri": ""}).status_code == 403
+    monkeypatch.setenv("APP_PASSWORD", "siri")
+    assert c.post("/api/hs/injini/sajili", json={"url": "https://a.gradio.live", "siri": "mbaya"}).status_code == 403
+    assert c.post("/api/hs/injini/sajili", json={"url": "javascript:x", "siri": "siri"}).status_code == 400
+    assert c.post("/api/hs/injini/sajili", json={"url": "https://a.gradio.live/", "siri": "siri"}).status_code == 200
+    assert c.get("/api/hs/injini").json() == {"url": "https://a.gradio.live", "hai": True}
+    # baada ya muda, uhai hukaguliwa upya kwa ping
+    kiini._injini_hali = (0.0, True)
+    monkeypatch.setattr(seva.urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(OSError("off")))
+    assert c.get("/api/hs/injini").json()["hai"] is False
+    # anwani hukumbukwa Space ikianza upya
+    assert seva.Kiini(tmp_path, "x", picha="mtandao", sauti="kimya").injini_url == "https://a.gradio.live"
+
+
+def test_fungua_faili_la_hadithi(mteja):
+    c, kiini = mteja
+    yaml_text = open("mifano/siri_ya_kisima.yaml", encoding="utf-8").read()
+    r = c.post("/api/hs/mradi/pakia", files={"faili": ("kisima_changu.yaml", yaml_text.encode(), "text/yaml")})
+    assert r.json()["mradi"] == "kisima_changu"
+    assert c.get("/api/hs/hali").json()["hadithi"]["kichwa"] == "Siri ya Kisima cha Kijiji"
+    assert c.post("/api/hs/mradi/pakia", files={"faili": ("x.yaml", b"matukio: []", "text/yaml")}).status_code == 400

@@ -18,7 +18,8 @@ from PIL import Image, ImageOps
 
 from .util import ffmpeg
 
-FPS = 25
+FPS = 30
+KATI = ("-c:v", "libx264", "-preset", "fast", "-crf", "14", "-pix_fmt", "yuv420p")  # hatua za kati: karibu bila hasara
 MODELI_YA_KINA = "depth-anything/Depth-Anything-V2-Small-hf"
 _KINA: dict = {}
 
@@ -63,7 +64,7 @@ def _rahisi(p: np.ndarray | float) -> np.ndarray | float:
 
 
 def klipu_ya_kina(picha: Path, kina: np.ndarray, aina: str, muda: float, upana: int, urefu: int,
-                  faili: Path, nguvu: float = 1.0) -> None:
+                  faili: Path, nguvu: float = 1.0, fps: int = FPS) -> None:
     """Tengeneza klipu (bila sauti) ya mwendo wa 2.5D kwa kutumia ramani ya kina."""
     import cv2
 
@@ -82,10 +83,9 @@ def klipu_ya_kina(picha: Path, kina: np.ndarray, aina: str, muda: float, upana: 
     pan = 0.045 * upana * nguvu
     zoom = 0.10 * nguvu
 
-    fremu = max(1, round(muda * FPS))
+    fremu = max(1, round(muda * fps))
     amri = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
-            "-s", f"{upana}x{urefu}", "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "medium",
-            "-crf", "20", "-pix_fmt", "yuv420p", str(faili)]
+            "-s", f"{upana}x{urefu}", "-r", str(fps), "-i", "-", *KATI, str(faili)]
     mchakato = subprocess.Popen(amri, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         for i in range(fremu):
@@ -154,14 +154,15 @@ class MwendoWaAI:
         print("✅ Modeli ya mwendo iko tayari.")
 
     def tengeneza(self, picha: Path, faili: Path, upana: int, urefu: int, mbegu: int,
-                  nguvu: int = 127, hatua: int = 20) -> None:
+                  nguvu: int = 127, hatua: int = 25) -> None:
+        """Klipu huhifadhiwa kwa ukubwa wa asili wa SVD; hupanuliwa wakati wa kuunganisha video."""
         w, h = _ukubwa_wa_svd(upana, urefu)
         img = ImageOps.fit(Image.open(picha).convert("RGB"), (w, h), Image.LANCZOS)
         gen = self.torch.Generator("cpu").manual_seed(mbegu)
         fremu = self.pipe(img, height=h, width=w, num_frames=25, num_inference_steps=hatua, fps=7,
                           motion_bucket_id=int(nguvu), noise_aug_strength=0.02, decode_chunk_size=2,
                           generator=gen).frames[0]
-        hifadhi_fremu(fremu, faili, upana, urefu)
+        hifadhi_fremu(fremu, faili)
         self.torch.cuda.empty_cache()
 
     def funga(self) -> None:
@@ -170,40 +171,41 @@ class MwendoWaAI:
         self.torch.cuda.empty_cache()
 
 
-def hifadhi_fremu(fremu: list[Image.Image], faili: Path, upana: int, urefu: int, fps_asili: int = 7) -> None:
-    """Fremu chache (fps 7) → klipu laini ya fps 25 yenye ukubwa wa video."""
+def hifadhi_fremu(fremu: list[Image.Image], faili: Path, fps_asili: int = 7, fps: int = FPS) -> None:
+    """Fremu chache (fps 7) → klipu laini (fps 30) kwa kubuni fremu za katikati (motion interpolation)."""
     folda = faili.with_suffix("")
     folda.mkdir(parents=True, exist_ok=True)
     for i, f in enumerate(fremu):
         f.save(folda / f"f{i:03d}.png")
     ffmpeg("-framerate", str(fps_asili), "-i", str(folda / "f%03d.png"),
-           "-vf", f"scale={upana}:{urefu}:force_original_aspect_ratio=increase:flags=lanczos,"
-                  f"crop={upana}:{urefu},minterpolate=fps={FPS}:mi_mode=blend,format=yuv420p",
-           "-c:v", "libx264", "-preset", "medium", "-crf", "20", str(faili))
+           "-vf", f"minterpolate=fps={fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,format=yuv420p",
+           *KATI, str(faili))
     for f in folda.iterdir():
         f.unlink()
     folda.rmdir()
 
 
 def klipu_ya_mfano(picha: Path, faili: Path, upana: int, urefu: int) -> None:
-    """Badala ya AI kwa majaribio bila GPU: fremu 25 zenye mwendo mdogo."""
-    img = ImageOps.fit(Image.open(picha).convert("RGB"), (upana, urefu), Image.LANCZOS)
+    """Badala ya AI kwa majaribio bila GPU: fremu 25 zenye mwendo mdogo (ukubwa wa SVD)."""
+    w, h = _ukubwa_wa_svd(upana, urefu)
+    img = ImageOps.fit(Image.open(picha).convert("RGB"), (w, h), Image.LANCZOS)
     fremu = []
     for i in range(25):
         dx = int(6 * np.sin(i / 24 * np.pi))
         fremu.append(img.transform(img.size, Image.AFFINE, (1, 0, dx, 0, 1, 0)))
-    hifadhi_fremu(fremu, faili, upana, urefu)
+    hifadhi_fremu(fremu, faili)
 
 
 def alama_ya_klipu(picha: Path, *vigezo) -> str:
     return hashlib.md5("|".join(map(str, (picha.stat().st_mtime_ns, *vigezo))).encode()).hexdigest()[:12]
 
 
-def jaza_muda(klipu: Path, muda: float, faili: Path) -> None:
-    """Rudia klipu (mbele-nyuma, kama "boomerang") hadi ijaze muda wa tukio."""
-    ffmpeg("-i", str(klipu), "-filter_complex", "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1[v]",
-           "-map", "[v]", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-           str(faili.with_suffix(".boom.mp4")))
-    ffmpeg("-stream_loop", "-1", "-i", str(faili.with_suffix(".boom.mp4")), "-t", f"{muda:.3f}",
-           "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", str(faili))
-    faili.with_suffix(".boom.mp4").unlink(missing_ok=True)
+def jaza_muda(klipu: Path, muda: float, faili: Path, upana: int, urefu: int, fps: int = FPS) -> None:
+    """Panua klipu hadi ukubwa wa video, kisha irudie (mbele-nyuma, kama "boomerang") hadi ijaze muda."""
+    boom = faili.with_suffix(".boom.mp4")
+    ffmpeg("-i", str(klipu), "-filter_complex",
+           f"[0:v]scale={upana}:{urefu}:force_original_aspect_ratio=increase:flags=lanczos,crop={upana}:{urefu},"
+           f"unsharp=5:5:0.45,fps={fps},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1[v]",
+           "-map", "[v]", *KATI, str(boom))
+    ffmpeg("-stream_loop", "-1", "-i", str(boom), "-t", f"{muda:.3f}", *KATI, str(faili))
+    boom.unlink(missing_ok=True)
